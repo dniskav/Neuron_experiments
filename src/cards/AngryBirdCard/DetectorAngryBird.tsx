@@ -18,7 +18,7 @@ export function DetectorAngryBird() {
 
   const drag = useAngryBirdDrag((esc) => training.getPred(esc), anguloPredRef, setAnguloPred)
 
-  const training = useAngryBirdTraining(anguloPredRef, drag.escenaRef, setAnguloPred, (v) => {
+  const training = useAngryBirdTraining(anguloPredRef, drag.escenaRef, setAnguloPred, () => {
     drag.resetEscena()
     // setEscenaState(v) // Eliminado porque setEscenaState ya no existe
   })
