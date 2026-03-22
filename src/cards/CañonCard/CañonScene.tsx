@@ -74,7 +74,7 @@ function Background() {
 // ─── Obstáculo ────────────────────────────────────────────────────────────────
 function ObstacleMesh({ escenaRef, hoverRef }: { escenaRef: RefObject<Escena>; hoverRef: RefObject<"target" | "obstacle" | null> }) {
   const pillarMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#6b7280" }), []);
-  const handleMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffffb3" }), []);
+  const handleMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffff", opacity: 0.7, transparent: true }), []);
   const pillar    = useMemo(() => new THREE.Mesh(new THREE.PlaneGeometry(1, 1), pillarMat), [pillarMat]);
   const cap       = useMemo(() => new THREE.Mesh(new THREE.PlaneGeometry(22, 6), new THREE.MeshBasicMaterial({ color: "#374151" })), []);
   const handle    = useMemo(() => new THREE.Mesh(new THREE.CircleGeometry(7, 16), handleMat), [handleMat]);
@@ -97,7 +97,9 @@ function ObstacleMesh({ escenaRef, hoverRef }: { escenaRef: RefObject<Escena>; h
     cap.position.set(ox, ohY - 3, 0.15);
 
     handle.position.set(ox, ohY + 3, 0.2);
-    handleMat.color.set(isHover ? "#fbbf24" : "#ffffffb3");
+    handleMat.color.set(isHover ? "#fbbf24" : "#ffffff");
+    handleMat.opacity = isHover ? 1 : 0.7;
+    handleMat.transparent = !isHover;
 
     arrowRef.current?.position.set(ox, ohY + 3, 0.3);
   });
@@ -173,7 +175,7 @@ function TargetMesh({ escenaRef, hoverRef, predRef }: {
       <primitive object={haloRing} />
       {rings.map((r, i) => <primitive key={i} object={r} />)}
       <Text ref={golpeRef as any} fontSize={11} color="#10b981" anchorX="center" anchorY="middle">¡Golpe!</Text>
-      <Text ref={arrowRef as any} fontSize={10} color="#ffffffb3" anchorX="center" anchorY="middle">↔</Text>
+      <Text ref={arrowRef as any} fontSize={10} color="#ffffff" anchorX="center" anchorY="middle">↔</Text>
       <Text ref={warnRef as any} position={[0, CH / 2 - 55, 0.3]} fontSize={12} color="#ef4444" anchorX="center" anchorY="middle">
         ⚠ Sin solución para esta configuración
       </Text>
@@ -311,8 +313,8 @@ function Legend() {
     <>
       <primitive object={dashLine} />
       <primitive object={solidLine} />
-      <Text position={[lx, ly1, 0.3]} fontSize={9} color="#ffffffd9" anchorX="left" anchorY="middle">tiro óptimo (mín. fuerza)</Text>
-      <Text position={[lx, ly2, 0.3]} fontSize={9} color="#ffffffd9" anchorX="left" anchorY="middle">predicción de la red</Text>
+      <Text position={[lx, ly1, 0.3]} fontSize={9} color="#ffffff" anchorX="left" anchorY="middle">tiro óptimo (mín. fuerza)</Text>
+      <Text position={[lx, ly2, 0.3]} fontSize={9} color="#ffffff" anchorX="left" anchorY="middle">predicción de la red</Text>
     </>
   );
 }

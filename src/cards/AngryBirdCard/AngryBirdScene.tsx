@@ -86,7 +86,7 @@ function ObstacleMesh({
   hoverRef: RefObject<'target' | 'obstacle' | null>
 }) {
   const pillarMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#6b7280' }), [])
-  const handleMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffffb3' }), [])
+  const handleMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', opacity: 0.7, transparent: true }), [])
   const pillar = useMemo(
     () => new THREE.Mesh(new THREE.PlaneGeometry(1, 1), pillarMat),
     [pillarMat]
@@ -122,7 +122,9 @@ function ObstacleMesh({
     cap.position.set(ox, ohY - 3, 0.15)
 
     handle.position.set(ox, ohY + 3, 0.2)
-    handleMat.color.set(isHover ? '#fbbf24' : '#ffffffb3')
+    handleMat.color.set(isHover ? '#fbbf24' : '#ffffff')
+    handleMat.opacity = isHover ? 1 : 0.7
+    handleMat.transparent = !isHover
 
     arrowRef.current?.position.set(ox, ohY + 3, 0.3)
   })
@@ -217,7 +219,6 @@ function TargetMesh({
 
     // ↔ handle
     arrowRef.current?.position.set(tx, ty - 14, 0.3)
-    if (arrowRef.current) (arrowRef.current as any).color = isHL ? '#fbbf24' : '#ffffffb3'
 
     // ⚠ Sin solución
     if (warnRef.current) warnRef.current.visible = correct === null
@@ -233,7 +234,7 @@ function TargetMesh({
       <Text ref={golpeRef as any} fontSize={11} color="#10b981" anchorX="center" anchorY="middle">
         ¡Golpe!
       </Text>
-      <Text ref={arrowRef as any} fontSize={10} color="#ffffffb3" anchorX="center" anchorY="middle">
+      <Text ref={arrowRef as any} fontSize={10} color="#ffffff" anchorX="center" anchorY="middle">
         ↔
       </Text>
       <Text
@@ -406,7 +407,7 @@ function Legend() {
       <Text
         position={[lx, ly1, 0.3]}
         fontSize={9}
-        color="#ffffffd9"
+        color="#ffffff"
         anchorX="left"
         anchorY="middle">
         trayectoria correcta
@@ -414,7 +415,7 @@ function Legend() {
       <Text
         position={[lx, ly2, 0.3]}
         fontSize={9}
-        color="#ffffffd9"
+        color="#ffffff"
         anchorX="left"
         anchorY="middle">
         predicción de la red
