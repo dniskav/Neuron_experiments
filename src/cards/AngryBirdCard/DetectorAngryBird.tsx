@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Box, Button, HStack, Heading, Text } from '@chakra-ui/react'
 import { StatItem, CardRoot, DetailsBox, BodyText } from '../../components/lib'
 import { Canvas } from '@react-three/fiber'
-import { encontrarAngulo, xAterrizaje, G, V0 } from '../../data/fisicas'
+import { encontrarAngulo, G, V0 } from '../../data/fisicas'
 import { AngryBirdScene, CW, CH } from './AngryBirdScene'
 import { useAngryBirdTraining } from './useAngryBirdTraining'
 import { useAngryBirdDrag } from './useAngryBirdDrag'
@@ -20,7 +20,7 @@ export function DetectorAngryBird() {
 
   const training = useAngryBirdTraining(anguloPredRef, drag.escenaRef, setAnguloPred, (v) => {
     drag.resetEscena()
-    setEscenaState(v)
+    // setEscenaState(v) // Eliminado porque setEscenaState ya no existe
   })
 
   // Keep local escena state in sync with drag
