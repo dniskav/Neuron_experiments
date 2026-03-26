@@ -6,7 +6,7 @@
       "name": "app",
       "dependencies": {
         "@chakra-ui/react": "^3.34.0",
-        "@dniskav/neuron": "^0.1.3",
+        "@dniskav/neuron": "^0.1.6",
         "@emotion/react": "^11.14.0",
         "@react-three/drei": "^10.7.7",
         "@react-three/fiber": "^9.5.0",
@@ -72,7 +72,7 @@
 
     "@dimforge/rapier3d-compat": ["@dimforge/rapier3d-compat@0.12.0", "", {}, "sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow=="],
 
-    "@dniskav/neuron": ["@dniskav/neuron@0.1.3", "", {}, "sha512-cfvgISi+F17eILIXBGHq0gNE4oxAwwft/M+qg/CY2RIrky3RJo936MJYmGVqk1/azFMvDbz+eaBklgFY9NV5jQ=="],
+    "@dniskav/neuron": ["@dniskav/neuron@0.1.6", "", {}, "sha512-+1ANL6yyQuJLkwdtTm7y0EoMVxYWJVFPzfdmjHTdArIVv28xtTfC0UwT/8WJTD2UTVNcoBO658TkBY8uuuxQzA=="],
 
     "@emnapi/core": ["@emnapi/core@1.9.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.0", "tslib": "^2.4.0" } }, "sha512-mukuNALVsoix/w1BJwFzwXBN/dHeejQtuVzcDsfOEsdpCumXb/E9j8w11h5S54tT1xhifGfbbSm/ICrObRb3KA=="],
 
