@@ -1,18 +1,27 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Network } from "@dniskav/neuron";
+import { NetworkN, Momentum, relu, sigmoid } from "@dniskav/neuron";
 import { generarDatosCirculo, type PuntoCirculo } from "../../data/datosCirculo";
 
 const N_OCULTAS = 24;
-const TASA = 0.3;
+const TASA = 0.05;
 const EJEMPLOS_INICIALES = 500;
 const EPOCAS_POR_FRAME = 5;
 
-export function crearRed(): Network { return new Network(2, N_OCULTAS, 1); }
+const OPCIONES = { activations: [relu, sigmoid], optimizer: () => new Momentum() };
+export function crearRed(): NetworkN { return new NetworkN([2, N_OCULTAS, 1], OPCIONES); }
+
+/** Propaga hacia adelante manualmente para obtener activaciones de todas las capas. */
+function computeActs(net: NetworkN, inputs: number[]): number[][] {
+  const acts: number[][] = [inputs];
+  for (const layer of net.layers) acts.push(layer.predict(acts[acts.length - 1]));
+  return acts;
+}
 
 export function useCirculoTraining() {
-  const redRef    = useRef<Network>(crearRed());
+  const redRef    = useRef<NetworkN>(crearRed());
   const puntosRef = useRef<PuntoCirculo[]>(generarDatosCirculo(EJEMPLOS_INICIALES));
   const animFrameRef = useRef<number | null>(null);
+  const activationsRef = useRef<number[][]>([]);
 
   const [epocas,     setEpocas]     = useState(0);
   const [error,      setError]      = useState<number | null>(null);
@@ -22,16 +31,19 @@ export function useCirculoTraining() {
   const hacerEpoca = useCallback((): number => {
     const shuffled = [...puntosRef.current].sort(() => Math.random() - 0.5);
     let errorTotal = 0;
+    let lastInput: number[] = [0, 0];
     shuffled.forEach(({ x, y, dentro }) => {
-      errorTotal += redRef.current.train([x, y], dentro, TASA);
+      errorTotal += redRef.current.train([x, y], [dentro], TASA);
+      lastInput = [x, y];
     });
+    activationsRef.current = computeActs(redRef.current, lastInput);
     return errorTotal / puntosRef.current.length;
   }, []);
 
   const calcularPrecision = useCallback((): number => {
     let aciertos = 0;
     puntosRef.current.forEach(({ x, y, dentro }) => {
-      if ((redRef.current.predict([x, y]) >= 0.5 ? 1 : 0) === dentro) aciertos++;
+      if ((redRef.current.predict([x, y])[0] >= 0.5 ? 1 : 0) === dentro) aciertos++;
     });
     return aciertos / puntosRef.current.length;
   }, []);
@@ -81,6 +93,7 @@ export function useCirculoTraining() {
   return {
     redRef,
     puntosRef,
+    activationsRef,
     epocas,
     error,
     correcto,

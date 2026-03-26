@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { Network } from "@dniskav/neuron";
+import type { NetworkN } from "@dniskav/neuron";
 import type { PuntoCirculo } from "../../data/datosCirculo";
 import type { CirculoSceneProps, Circulo } from "./types";
 
@@ -30,7 +30,7 @@ function n2t(nx: number, ny: number): [number, number, number] {
 const PASO = 4;
 const GRID = W / PASO; // 80
 
-function HeatmapMesh({ redRef }: { redRef: RefObject<Network> }) {
+function HeatmapMesh({ redRef }: { redRef: RefObject<NetworkN> }) {
   const data    = useMemo(() => new Uint8Array(GRID * GRID * 4), []);
   const texture = useMemo(() => {
     const t = new THREE.DataTexture(data, GRID, GRID, THREE.RGBAFormat);
@@ -43,7 +43,7 @@ function HeatmapMesh({ redRef }: { redRef: RefObject<Network> }) {
     for (let row = 0; row < GRID; row++) {
       for (let col = 0; col < GRID; col++) {
         const { x, y } = toNorm(col * PASO, row * PASO);
-        const prob = redRef.current.predict([x, y]);
+        const prob = redRef.current.predict([x, y])[0];
         const i = (row * GRID + col) * 4;
         data[i]     = Math.round(255 * (1 - prob));
         data[i + 1] = Math.round(200 * prob);

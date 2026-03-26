@@ -1,4 +1,4 @@
-import { NetworkLSTM } from "@dniskav/neuron";
+import { NetworkLSTM, Adam } from "@dniskav/neuron";
 import { loadNetworkLSTM } from "../../data/storage";
 
 // ─── Arquitectura: LSTM(12 → 16) → Dense(16) → Dense(3) ──────────────────────
@@ -23,7 +23,7 @@ export const MAX_TRAIL      = 100;
 // ─── Red ──────────────────────────────────────────────────────────────────────
 
 export function crearRed(): NetworkLSTM {
-  return new NetworkLSTM(LSTM_IN, LSTM_H, DENSE);
+  return new NetworkLSTM(LSTM_IN, LSTM_H, DENSE, { optimizer: () => new Adam() });
 }
 
 export function crearRedLaberinto() {
@@ -41,6 +41,26 @@ export function crearRedLaberinto() {
     epsilon:  data?.epsilon  ?? EPSILON_INICIO,
     exitos:   data?.exitos   ?? 0,
   };
+}
+
+// ─── Activaciones intermedias ─────────────────────────────────────────────────
+//
+// Reconstruye todas las activaciones de la red LSTM para visualización:
+//   acts[0] = entradas
+//   acts[1] = salida LSTM (hidden state h)
+//   acts[2..n] = salidas de las capas dense
+//
+// Las capas dense se re-evalúan (sin coste en estado) para obtener
+// los valores intermedios que NetworkLSTM no expone directamente.
+
+export function computeLSTMActs(net: NetworkLSTM, inputs: number[]): number[][] {
+  const lstmH = net.lstm.h.slice(); // copia del hidden state tras el último predict
+  const acts: number[][] = [inputs, lstmH];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const layer of (net as any).denseLayers) {
+    acts.push(layer.predict(acts[acts.length - 1]));
+  }
+  return acts;
 }
 
 // ─── Selección de acción ──────────────────────────────────────────────────────

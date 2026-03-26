@@ -10,7 +10,7 @@ import {
   SimpleGrid,
   Text,
 } from "@chakra-ui/react";
-import { StatItem, CardRoot } from "../../components/lib";
+import { StatItem, CardRoot, DetailsBox, BodyText, NetworkDiagram } from "../../components/lib";
 import { Canvas } from "@react-three/fiber";
 import { MazeScene, CW, CH } from "./MazeScene";
 import { WAYPOINTS, WAYPOINT_BONUS } from "../../data/laberinto";
@@ -22,6 +22,7 @@ export function DetectorLaberinto() {
     agenteRef,
     trailRef,
     wpRef,
+    activationsRef,
     stats,
     sensores,
     setSensores,
@@ -44,6 +45,17 @@ export function DetectorLaberinto() {
         Memoria recurrente (LSTM) + <em>mapa de celdas visitadas</em> como entrada directa.
         El agente sabe qué direcciones ya exploró este episodio. Aprende con BPTT + TD(λ).
       </Text>
+
+      <NetworkDiagram
+        layers={[
+          { size: LSTM_IN },
+          { size: LSTM_H,    activation: "lstm" },
+          { size: DENSE[0],  activation: "relu" },
+          { size: DENSE[1],  activation: "sigmoid" },
+        ]}
+        optimizer="Adam lr=0.02"
+        activationsRef={activationsRef}
+      />
 
       <Box borderRadius="md" border="1px solid" borderColor="gray.200" style={{ display: "block" }}>
         <Canvas
@@ -131,6 +143,12 @@ export function DetectorLaberinto() {
           <Checkbox.Label fontSize="sm" color="gray.600">Sensores</Checkbox.Label>
         </Checkbox.Root>
       </Flex>
+
+      <DetailsBox summary="Activaciones y optimizador">
+        <BodyText><strong>LSTM · sigmoid + tanh (internos):</strong> las 4 compuertas usan sigmoid (forget, input, output) y tanh (cell gate) — es la arquitectura LSTM estándar. Sigmoid decide qué porcentaje de información dejar pasar; tanh produce los valores candidatos a escribir en memoria.</BodyText>
+        <BodyText><strong>Capas dense · sigmoid:</strong> producen los Q-values del agente normalizados a [0, 1], compatibles con el rango de recompensas escaladas del entorno.</BodyText>
+        <BodyText><strong>Adam en dense (lr={LR}):</strong> las capas dense reciben gradientes ya procesados por BPTT a través del tiempo. Adam adapta el paso individualmente para cada peso, crítico cuando los gradientes llegan atenuados tras múltiples pasos de tiempo.</BodyText>
+      </DetailsBox>
 
       <Text fontSize="11px" color="gray.400" textAlign="center">
         Red: LSTM({LSTM_IN}→{LSTM_H}) → Dense({DENSE.join("→")}) · BPTT + TD(λ={LAMBDA}) γ={GAMMA} · lr={LR} · ε {EPSILON_INICIO}→{EPSILON_FIN} · {WAYPOINTS.length} waypoints (+{WAYPOINT_BONUS} ref.)

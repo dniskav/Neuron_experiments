@@ -1,11 +1,18 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { NetworkN } from "@dniskav/neuron";
+import { NetworkN, Adam, relu, sigmoid } from "@dniskav/neuron";
 import { xAterrizaje, type Escena } from "../../data/fisicas";
 import { generarDatosCañon, desnormAngulo, desnormV0, type EjemploCañon } from "../../data/datosCañon";
 import { tiroCorrecto } from "./CañonScene";
 
 const ESTRUCTURA       = [3, 24, 16, 2];
-const TASA             = 0.06;
+const OPCIONES         = { activations: [relu, relu, sigmoid], optimizer: () => new Adam() };
+
+function computeActs(net: NetworkN, inputs: number[]): number[][] {
+  const acts: number[][] = [inputs];
+  for (const layer of net.layers) acts.push(layer.predict(acts[acts.length - 1]));
+  return acts;
+}
+const TASA             = 0.001;
 const N_DATOS          = 800;
 const EPOCAS_POR_FRAME = 15;
 export const ESCENA_INICIAL: Escena = { xObstaculo: 5, hObstaculo: 4, xBlanco: 11 };
@@ -16,9 +23,10 @@ export function useCañonTraining(
   setPred: (v: { angulo: number; v0: number } | null) => void,
   setEscena: (v: Escena) => void,
 ) {
-  const redRef       = useRef<NetworkN>(new NetworkN(ESTRUCTURA));
-  const datosRef     = useRef<EjemploCañon[]>(generarDatosCañon(N_DATOS));
-  const animFrameRef = useRef<number | null>(null);
+  const redRef         = useRef<NetworkN>(new NetworkN(ESTRUCTURA, OPCIONES));
+  const datosRef       = useRef<EjemploCañon[]>(generarDatosCañon(N_DATOS));
+  const animFrameRef   = useRef<number | null>(null);
+  const activationsRef = useRef<number[][]>([]);
 
   const [epocas,     setEpocas]     = useState(0);
   const [errorDeg,   setErrorDeg]   = useState<number | null>(null);
@@ -26,11 +34,10 @@ export function useCañonTraining(
   const [entrenando, setEntrenando] = useState(false);
 
   const getPred = useCallback((esc: Escena) => {
-    const [aNorm, vNorm] = redRef.current.predict([
-      esc.xBlanco    / 20,
-      esc.xObstaculo / 12,
-      esc.hObstaculo / 8,
-    ]);
+    const inp  = [esc.xBlanco / 20, esc.xObstaculo / 12, esc.hObstaculo / 8];
+    const acts = computeActs(redRef.current, inp);
+    activationsRef.current = acts;
+    const [aNorm, vNorm] = acts[acts.length - 1];
     return { angulo: desnormAngulo(aNorm), v0: desnormV0(vNorm) };
   }, []);
 
@@ -107,7 +114,7 @@ export function useCañonTraining(
 
   const resetear = useCallback(() => {
     pausar();
-    redRef.current = new NetworkN(ESTRUCTURA);
+    redRef.current = new NetworkN(ESTRUCTURA, OPCIONES);
     escenaRef.current = { ...ESCENA_INICIAL };
     setEscena({ ...ESCENA_INICIAL });
     setEpocas(0); setErrorDeg(null); setPrecision(null); setPred(null);
@@ -118,6 +125,7 @@ export function useCañonTraining(
   return {
     redRef,
     datosRef,
+    activationsRef,
     epocas,
     errorDeg,
     precision,

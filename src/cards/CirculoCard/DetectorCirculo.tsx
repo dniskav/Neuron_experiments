@@ -7,7 +7,7 @@ import {
   Heading,
   Text,
 } from "@chakra-ui/react";
-import { StatItem, CardRoot, DetailsBox, BodyText } from "../../components/lib";
+import { StatItem, CardRoot, DetailsBox, BodyText, NetworkDiagram } from "../../components/lib";
 import { Canvas } from "@react-three/fiber";
 import { CirculoScene, W, H } from "./CirculoScene";
 import { useCirculoTraining } from "./useCirculoTraining";
@@ -17,6 +17,7 @@ const N_OCULTAS = 24;
 
 export function DetectorCirculo() {
   const training = useCirculoTraining();
+  const { activationsRef } = training;
 
   const handleDrop = useCallback((cx: number, cy: number, radio: number) => {
     training.resetear(cx, cy, radio);
@@ -49,6 +50,16 @@ export function DetectorCirculo() {
         <Text as="span" color="gray.400">→</Text>
         <Box as="span" bg="gray.100" borderRadius="md" px={2} py="2px" color="gray.700" fontWeight={600}>dentro / fuera</Box>
       </Flex>
+
+      <NetworkDiagram
+        layers={[
+          { size: 2 },
+          { size: N_OCULTAS, activation: "relu" },
+          { size: 1, activation: "sigmoid" },
+        ]}
+        optimizer="Momentum β=0.9"
+        activationsRef={activationsRef}
+      />
 
       {/* Canvas principal */}
       <Box
@@ -120,6 +131,12 @@ export function DetectorCirculo() {
           ↺ Resetear
         </Button>
       </HStack>
+
+      <DetailsBox summary="Activaciones y optimizador">
+        <BodyText><strong>Capas ocultas · relu:</strong> evita la saturación de sigmoid para entradas grandes — los gradientes no se aplanan y el entrenamiento avanza más rápido.</BodyText>
+        <BodyText><strong>Salida · sigmoid:</strong> mapea la predicción a [0, 1], interpretable directamente como probabilidad de estar dentro del círculo.</BodyText>
+        <BodyText><strong>Momentum (β=0.9):</strong> acumula velocidad en la dirección del gradiente. Reduce oscilaciones y converge más rápido que SGD puro sin necesitar un lr tan pequeño como Adam.</BodyText>
+      </DetailsBox>
 
       <DetailsBox summary="¿Cómo aprende la red? (backpropagation)">
         <BodyText><strong>1. Forward pass:</strong> el punto (x, y) entra a la red. Cada neurona oculta calcula una combinación de x e y, pasa el resultado por sigmoid y produce un número entre 0 y 1. La neurona de salida combina las {N_OCULTAS} salidas y da la predicción final.</BodyText>

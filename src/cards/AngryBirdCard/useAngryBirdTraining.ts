@@ -1,10 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { NetworkN } from "@dniskav/neuron";
+import { NetworkN, Adam, relu, sigmoid } from "@dniskav/neuron";
 import { type Escena } from "../../data/fisicas";
 import { generarDatos, desnormAngulo, type EjemploTiro } from "../../data/datosAngryBird";
 
 const ESTRUCTURA       = [3, 16, 8, 1];
-const TASA             = 0.05;
+const OPCIONES         = { activations: [relu, relu, sigmoid], optimizer: () => new Adam() };
+
+function computeActs(net: NetworkN, inputs: number[]): number[][] {
+  const acts: number[][] = [inputs];
+  for (const layer of net.layers) acts.push(layer.predict(acts[acts.length - 1]));
+  return acts;
+}
+const TASA             = 0.001;
 const N_DATOS          = 400;
 const EPOCAS_POR_FRAME = 3;
 export const ESCENA_INICIAL: Escena = { xObstaculo: 7, hObstaculo: 6, xBlanco: 15 };
@@ -15,9 +22,10 @@ export function useAngryBirdTraining(
   setAnguloPred: (v: number | null) => void,
   setEscena: (v: Escena) => void,
 ) {
-  const redRef       = useRef<NetworkN>(new NetworkN(ESTRUCTURA));
-  const datosRef     = useRef<EjemploTiro[]>(generarDatos(N_DATOS));
-  const animFrameRef = useRef<number | null>(null);
+  const redRef         = useRef<NetworkN>(new NetworkN(ESTRUCTURA, OPCIONES));
+  const datosRef       = useRef<EjemploTiro[]>(generarDatos(N_DATOS));
+  const animFrameRef   = useRef<number | null>(null);
+  const activationsRef = useRef<number[][]>([]);
 
   const [epocas,     setEpocas]     = useState(0);
   const [errorDeg,   setErrorDeg]   = useState<number | null>(null);
@@ -25,12 +33,10 @@ export function useAngryBirdTraining(
   const [entrenando, setEntrenando] = useState(false);
 
   const getPred = useCallback((esc: Escena): number => {
-    const norm = redRef.current.predict([
-      esc.xBlanco    / 18,
-      esc.xObstaculo / 12,
-      esc.hObstaculo / 9,
-    ])[0];
-    return desnormAngulo(norm);
+    const inp = [esc.xBlanco / 18, esc.xObstaculo / 12, esc.hObstaculo / 9];
+    const acts = computeActs(redRef.current, inp);
+    activationsRef.current = acts;
+    return desnormAngulo(acts[acts.length - 1][0]);
   }, []);
 
   const calcularStats = useCallback(() => {
@@ -101,7 +107,7 @@ export function useAngryBirdTraining(
 
   const resetear = useCallback(() => {
     pausar();
-    redRef.current    = new NetworkN(ESTRUCTURA);
+    redRef.current    = new NetworkN(ESTRUCTURA, OPCIONES);
     datosRef.current  = generarDatos(N_DATOS);
     escenaRef.current = { ...ESCENA_INICIAL };
     setEscena({ ...ESCENA_INICIAL });
@@ -113,6 +119,7 @@ export function useAngryBirdTraining(
   return {
     redRef,
     datosRef,
+    activationsRef,
     epocas,
     errorDeg,
     precision,

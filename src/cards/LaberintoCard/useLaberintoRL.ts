@@ -9,6 +9,7 @@ import {
 } from "../../data/laberinto";
 import {
   crearRed, crearRedLaberinto, accionGreedy, accionReflejoChoque, actualizarLambda,
+  computeLSTMActs,
   STORAGE_KEY, SAVE_EVERY, LR, EPSILON_INICIO, EPSILON_FIN, EPSILON_DECAY,
   MAX_PASOS, PASOS_FRAME, MAX_TRAIL,
   type StepBuf,
@@ -35,6 +36,7 @@ export function useLaberintoRL() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bestWeightsRef  = useRef<any | null>(null);
   const afterDemoRef    = useRef<(() => void) | null>(null);
+  const activationsRef  = useRef<number[][]>([]);
 
   const [stats, setStats] = useState(() => ({
     episodio: savedRef.current.episodio,
@@ -79,6 +81,7 @@ export function useLaberintoRL() {
       // Siempre llamamos predict para avanzar el estado LSTM
       // (incluso cuando usamos el reflejo de colisión)
       const q = netRef.current.predict(inp);
+      activationsRef.current = computeLSTMActs(netRef.current, inp);
 
       // Selección de acción (igual que antes)
       let eps = esDemo ? 0.04 : epsilonRef.current;
@@ -325,6 +328,7 @@ export function useLaberintoRL() {
     agenteRef,
     trailRef,
     wpRef,
+    activationsRef,
     stats,
     sensores,
     setSensores,

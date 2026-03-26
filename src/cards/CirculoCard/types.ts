@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { Network } from "@dniskav/neuron";
+import type { NetworkN } from "@dniskav/neuron";
 import type { PuntoCirculo } from "../../data/datosCirculo";
 
 export interface Circulo {
@@ -9,7 +9,7 @@ export interface Circulo {
 }
 
 export interface CirculoSceneProps {
-  redRef:     RefObject<Network>;
+  redRef:     RefObject<NetworkN>;
   puntosRef:  RefObject<PuntoCirculo[]>;
   circuloRef: RefObject<Circulo>;
 }

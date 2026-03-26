@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Box, Button, HStack, Heading, Text } from '@chakra-ui/react'
-import { StatItem, CardRoot, DetailsBox, BodyText } from '../../components/lib'
+import { StatItem, CardRoot, DetailsBox, BodyText, NetworkDiagram } from '../../components/lib'
 import { Canvas } from '@react-three/fiber'
 import { encontrarAngulo, G, V0 } from '../../data/fisicas'
 import { AngryBirdScene, CW, CH } from './AngryBirdScene'
@@ -46,6 +46,17 @@ export function DetectorAngryBird() {
         Arrastra el <strong>blanco ↔</strong> o el tope del <strong>obstáculo ↕</strong> para ver si
         la red generaliza a nuevos escenarios sin reentrenarse.
       </Text>
+
+      <NetworkDiagram
+        layers={[
+          { size: 3 },
+          { size: 16, activation: "relu" },
+          { size: 8,  activation: "relu" },
+          { size: 1,  activation: "sigmoid" },
+        ]}
+        optimizer="Adam lr=0.001"
+        activationsRef={training.activationsRef}
+      />
 
       <HStack gap={6} fontSize="xs" color="gray.500" fontFamily="monospace">
         <Text as="span">Obstáculo: h={escena2.hObstaculo.toFixed(1)}m</Text>
@@ -142,6 +153,12 @@ export function DetectorAngryBird() {
           ↺ Resetear
         </Button>
       </HStack>
+
+      <DetailsBox summary="Activaciones y optimizador">
+        <BodyText><strong>Capas ocultas · relu:</strong> las relaciones físicas (arcoseno, corrección por obstáculo) son no lineales pero continuas — relu aprende funciones lineales a trozos eficientemente sin saturar los gradientes.</BodyText>
+        <BodyText><strong>Salida · sigmoid:</strong> el ángulo se normaliza a [0, 1] antes de entrenar — sigmoid lo mantiene en ese rango de forma natural.</BodyText>
+        <BodyText><strong>Adam (lr=0.001):</strong> ajusta el learning rate por parámetro usando el primer y segundo momento del gradiente. Converge más rápido que SGD en redes con múltiples capas donde los gradientes tienen magnitudes muy distintas.</BodyText>
+      </DetailsBox>
 
       <DetailsBox summary="¿Por qué 3 capas y no 2?">
         <BodyText>

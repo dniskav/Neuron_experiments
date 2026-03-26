@@ -6,3 +6,5 @@ export { WeightsDisplay } from "./WeightsDisplay";
 export { DetailsBox } from "./DetailsBox";
 export { BodyText } from "./BodyText";
 export { TableCell } from "./TableCell";
+export { NetworkDiagram } from "./NetworkDiagram";
+export type { LayerDef, NetworkDiagramProps, ActivationType } from "./NetworkDiagram";

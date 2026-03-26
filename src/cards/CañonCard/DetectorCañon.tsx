@@ -6,7 +6,7 @@ import {
   Heading,
   Text,
 } from "@chakra-ui/react";
-import { StatItem, CardRoot, DetailsBox, BodyText } from "../../components/lib";
+import { StatItem, CardRoot, DetailsBox, BodyText, NetworkDiagram } from "../../components/lib";
 import { Canvas } from "@react-three/fiber";
 import { encontrarOptimo } from "../../data/datosCañon";
 import { CañonScene, CW, CH } from "./CañonScene";
@@ -54,6 +54,17 @@ export function DetectorCañon() {
         La precisión mide si el tiro <em>físicamente</em> da en el blanco sin chocar el obstáculo.
         Arquitectura: <strong>[{ESTRUCTURA.join(" → ")}]</strong>
       </Text>
+
+      <NetworkDiagram
+        layers={[
+          { size: 3 },
+          { size: 24, activation: "relu" },
+          { size: 16, activation: "relu" },
+          { size: 2,  activation: "sigmoid" },
+        ]}
+        optimizer="Adam lr=0.001"
+        activationsRef={training.activationsRef}
+      />
 
       <Box
         ref={drag.containerRef}
@@ -122,6 +133,12 @@ export function DetectorCañon() {
         </Button>
         <Button flex={1} variant="outline" onClick={training.resetear}>↺ Resetear</Button>
       </HStack>
+
+      <DetailsBox summary="Activaciones y optimizador">
+        <BodyText><strong>Capas ocultas · relu:</strong> la red aprende 2 salidas correlacionadas (ángulo y fuerza). relu propaga gradientes limpios hacia atrás evitando que los errores de una salida "aplasten" los de la otra.</BodyText>
+        <BodyText><strong>Salida · sigmoid:</strong> tanto el ángulo como la fuerza están normalizados a [0, 1] — sigmoid garantiza que las predicciones caigan en ese rango sin restricción adicional.</BodyText>
+        <BodyText><strong>Adam (lr=0.001):</strong> con 2 salidas y 3 capas los gradientes tienen magnitudes muy distintas por parámetro. Adam normaliza esas diferencias adaptando el paso individualmente para cada peso, lo que estabiliza el entrenamiento.</BodyText>
+      </DetailsBox>
 
       <DetailsBox summary="¿Por qué hay infinitas soluciones y cómo lo resolvemos?">
         <BodyText>Para un blanco dado existen infinitas combinaciones (ángulo, fuerza) que llegan al mismo punto. Si la red aprende dos ejemplos contradictorios con la misma escena pero distinta solución, los gradientes se anulan y no converge.</BodyText>
