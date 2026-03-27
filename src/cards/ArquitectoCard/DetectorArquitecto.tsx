@@ -1,11 +1,11 @@
 // ─── DetectorArquitecto ───────────────────────────────────────────────────────
 //
-// Card interactiva: el usuario construye la arquitectura de una red neuronal
-// para resolver el problema XOR "¿Voy a la fiesta?".
-// La frontera de decisión se actualiza en tiempo real mientras entrena.
+// Sección interactiva de construcción de redes neuronales.
+// El usuario elige un problema, construye la arquitectura y ve la frontera
+// de decisión actualizarse en tiempo real.
 //
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Badge,
   Box,
@@ -16,240 +16,252 @@ import {
   SimpleGrid,
   Text,
 } from "@chakra-ui/react";
-import { StatItem, CardRoot, DetailsBox, BodyText, NetworkDiagram } from "../../components/lib";
+import { StatItem, DetailsBox, BodyText, NetworkDiagram } from "../../components/lib";
 import type { ActivationType } from "../../components/lib";
 import { DecisionCanvas, CANVAS_W } from "./DecisionCanvas";
 import { LayerBuilder } from "./LayerBuilder";
 import { useArquitectoTraining, type OptimizerType } from "./useArquitectoTraining";
+import { PROBLEMS, type Problem } from "./problems";
+
+// ── Selector de problema ──────────────────────────────────────────────────────
+
+const NIVEL_COLOR: Record<number, string> = { 1: "#10b981", 2: "#f59e0b", 3: "#ef4444" };
+
+function ProblemSelector({
+  selected, onChange,
+}: { selected: Problem; onChange: (p: Problem) => void }) {
+  return (
+    <Flex gap={2} flexWrap="wrap" justify="center">
+      {PROBLEMS.map(p => (
+        <Button
+          key={p.id}
+          size="sm"
+          variant={selected.id === p.id ? "solid" : "subtle"}
+          colorPalette={selected.id === p.id ? "violet" : "gray"}
+          onClick={() => onChange(p)}
+          borderWidth={selected.id === p.id ? 0 : "1.5px"}
+          borderColor="gray.200"
+        >
+          <Box
+            as="span"
+            display="inline-block"
+            w="8px" h="8px"
+            borderRadius="full"
+            bg={NIVEL_COLOR[p.nivel]}
+            mr={1}
+            flexShrink={0}
+          />
+          {p.emoji} {p.titulo}
+        </Button>
+      ))}
+    </Flex>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 
 const OPT_LABEL: Record<OptimizerType, string> = {
-  sgd:      "SGD",
-  momentum: "Momentum",
-  adam:     "Adam",
+  sgd: "SGD", momentum: "Momentum", adam: "Adam",
 };
 
 export function DetectorArquitecto() {
-  const t = useArquitectoTraining();
+  const [selectedProblem, setSelectedProblem] = useState<Problem>(PROBLEMS[2]); // fiesta por defecto
+  const t = useArquitectoTraining(selectedProblem);
 
-  // Capas para el NetworkDiagram (se actualiza live con la arquitectura)
   const networkLayers = useMemo(() => [
     { size: 2 },
     ...t.hiddenLayers.map(l => ({ size: l.neurons, activation: l.activation as ActivationType })),
     { size: 1, activation: "sigmoid" as ActivationType },
   ], [t.hiddenLayers]);
 
-  // Hint / celebración
   const hint = useMemo(() => {
     if (t.accuracy !== null && t.accuracy >= 0.95)
-      return { color: "green",  msg: "🎉 ¡Salvado! La red lo resolvió. ¡Voy a la fiesta!" };
-    if (t.epochs >= 300 && t.hiddenLayers.length === 0 && (t.accuracy ?? 0) < 0.65)
-      return { color: "orange", msg: "🤔 Una neurona sola no puede. Prueba añadiendo una capa oculta." };
-    if (t.epochs >= 600 && t.hiddenLayers.length > 0 && (t.accuracy ?? 0) < 0.70)
-      return { color: "blue",   msg: "🧠 Puede que necesites más neuronas o cambiar la activación." };
+      return { color: "green", msg: selectedProblem.successMsg };
+    for (const h of selectedProblem.hints) {
+      const accOk    = (t.accuracy ?? 0) < h.maxAcc;
+      const epochsOk = t.epochs >= h.minEpochs;
+      const layersOk = h.noLayers === undefined || h.noLayers === (t.hiddenLayers.length === 0);
+      if (accOk && epochsOk && layersOk) return { color: "orange", msg: h.msg };
+    }
     return null;
-  }, [t.accuracy, t.epochs, t.hiddenLayers.length]);
+  }, [t.accuracy, t.epochs, t.hiddenLayers.length, selectedProblem]);
 
   const accuracyStr = t.accuracy !== null ? `${(t.accuracy * 100).toFixed(1)} %` : "—";
   const lossStr     = t.loss     !== null ? t.loss.toFixed(4) : "—";
 
   return (
-    <CardRoot w="fit-content" alignItems="center">
-      <Heading size="md" color="gray.800">Arquitecto de Redes · ¿Voy a la fiesta?</Heading>
+    <Flex direction="column" gap={6} align="center" w="100%">
 
-      <Text fontSize="sm" color="gray.500" textAlign="center" maxW="460px">
-        Tienes un problema serio: <strong>¿vas o no vas a la fiesta?</strong> Vas si viene
-        tu novia <em>o</em> tu esposa — pero no si vienen las dos a la vez (te matan 💀),
-        y tampoco si no viene ninguna (qué aburrimiento 😴). Es decir: exactamente una de
-        las dos. La red tiene que aprenderlo sola — tú decides cuántas capas y neuronas
-        le das.{" "}
-        <em>Spoiler: sin capas ocultas, es imposible. 😈</em>
-      </Text>
+      {/* ── Selector de problema ───────────────────────────────────────── */}
+      <ProblemSelector selected={selectedProblem} onChange={setSelectedProblem} />
 
-      {/* ── Tabla de verdad (contexto narrativo) ─────────────────────────── */}
-      <Box
-        as="table"
-        fontSize="12px"
-        style={{ borderCollapse: "collapse" }}
-        color="gray.700"
-      >
-        <thead>
-          <Box as="tr">
-            <Box as="th" p={2} />
-            <Box as="th" p={2} fontWeight={600} color="gray.500">Novia ❌</Box>
-            <Box as="th" p={2} fontWeight={600} color="gray.500">Novia ✅</Box>
+      {/* ── Layout principal: canvas izq, controles der ────────────────── */}
+      <Flex gap={8} align="flex-start" flexWrap="wrap" justify="center">
+
+        {/* Columna izquierda: canvas */}
+        <Flex direction="column" gap={3} align="center">
+          <Flex justify="space-between" w={`${CANVAS_W}px`}>
+            <Text fontSize="9px" color="gray.400">↑ eje Y</Text>
+            <Text fontSize="9px" color="gray.400">eje X →</Text>
+          </Flex>
+
+          <DecisionCanvas
+            netRef={t.netRef}
+            points={t.points}
+            drawVersion={t.drawVersion}
+          />
+
+          {/* Leyenda */}
+          <Flex gap={4} justify="center">
+            <Flex align="center" gap={1}>
+              <Box w="10px" h="10px" borderRadius="full" bg="indigo.400" />
+              <Text fontSize="10px" color="gray.400">clase 1</Text>
+            </Flex>
+            <Flex align="center" gap={1}>
+              <Box w="10px" h="10px" borderRadius="full" bg="red.400" />
+              <Text fontSize="10px" color="gray.400">clase 0</Text>
+            </Flex>
+          </Flex>
+
+          {/* Hint / celebración */}
+          {hint && (
+            <Badge
+              colorPalette={hint.color}
+              variant="subtle"
+              borderRadius="lg"
+              px={3} py={2}
+              fontSize="12px"
+              textAlign="center"
+              whiteSpace="normal"
+              maxW={`${CANVAS_W}px`}
+            >
+              {hint.msg}
+            </Badge>
+          )}
+        </Flex>
+
+        {/* Columna derecha: controles */}
+        <Flex direction="column" gap={4} maxW="380px" w="100%">
+
+          {/* Descripción del problema */}
+          <Box
+            bg="white"
+            border="1px solid"
+            borderColor="gray.100"
+            borderRadius="xl"
+            p={4}
+          >
+            <Flex align="center" gap={2} mb={2}>
+              <Text fontSize="20px" lineHeight={1}>{selectedProblem.emoji}</Text>
+              <Heading size="sm" color="gray.700">{selectedProblem.titulo}</Heading>
+              <Box
+                fontSize="9px" fontWeight={700} color="white" px={2} py="1px"
+                borderRadius="full"
+                bg={NIVEL_COLOR[selectedProblem.nivel]}
+              >
+                {selectedProblem.nivel === 1 ? "FÁCIL" : selectedProblem.nivel === 2 ? "MEDIO" : "DIFÍCIL"}
+              </Box>
+            </Flex>
+            <Text fontSize="13px" color="gray.500" lineHeight={1.6}>
+              {selectedProblem.descripcion}
+            </Text>
           </Box>
-        </thead>
-        <tbody>
-          {[
-            ["Esposa ❌", "😴 Me quedo", "🕺 ¡Voy!"],
-            ["Esposa ✅", "🕺 ¡Voy!",    "💀 Me matan"],
-          ].map(([row, c1, c2]) => (
-            <Box as="tr" key={row as string}>
-              <Box as="td" p={2} fontWeight={600} color="gray.500" textAlign="right">{row}</Box>
-              <Box as="td" p={2} textAlign="center" bg="gray.50" borderRadius="md">{c1}</Box>
-              <Box as="td" p={2} textAlign="center" bg="gray.50" borderRadius="md">{c2}</Box>
-            </Box>
-          ))}
-        </tbody>
-      </Box>
 
-      {/* ── Diagrama de red (live) ────────────────────────────────────────── */}
-      <NetworkDiagram
-        layers={networkLayers}
-        optimizer={`${OPT_LABEL[t.optimizerType]} lr=${t.lr}`}
-        activationsRef={t.activationsRef}
-      />
+          {/* Diagrama de red (live) */}
+          <NetworkDiagram
+            layers={networkLayers}
+            optimizer={`${OPT_LABEL[t.optimizerType]} lr=${t.lr}`}
+            activationsRef={t.activationsRef}
+          />
 
-      {/* ── Constructor de arquitectura ───────────────────────────────────── */}
-      <Box
-        w="100%"
-        bg="gray.50"
-        border="1px dashed"
-        borderColor="gray.200"
-        borderRadius="xl"
-        p={3}
-      >
-        <Text fontSize="10px" color="gray.400" mb={2} textAlign="center" fontWeight={600} letterSpacing="wide">
-          ARQUITECTURA — añade capas y ajusta neuronas
-        </Text>
-        <LayerBuilder
-          hiddenLayers={t.hiddenLayers}
-          onAdd={t.addLayer}
-          onRemove={t.removeLayer}
-          onUpdate={t.updateLayer}
-        />
-      </Box>
+          {/* Constructor de arquitectura */}
+          <Box
+            bg="gray.50"
+            border="1px dashed"
+            borderColor="gray.200"
+            borderRadius="xl"
+            p={3}
+          >
+            <Text fontSize="10px" color="gray.400" mb={2} textAlign="center" fontWeight={600} letterSpacing="wide">
+              ARQUITECTURA
+            </Text>
+            <LayerBuilder
+              hiddenLayers={t.hiddenLayers}
+              onAdd={t.addLayer}
+              onRemove={t.removeLayer}
+              onUpdate={t.updateLayer}
+            />
+          </Box>
 
-      {/* ── Controles globales ────────────────────────────────────────────── */}
-      <Flex gap={2} flexWrap="wrap" justifyContent="center" alignItems="center">
-        <Flex align="center" gap={1}>
-          <Text fontSize="11px" color="gray.500">Opt:</Text>
-          <NativeSelect.Root size="sm" w="auto">
-            <NativeSelect.Field
-              value={t.optimizerType}
-              onChange={e => t.setOptimizerType(e.target.value as OptimizerType)}
-              fontSize="12px"
-            >
-              <option value="adam">Adam</option>
-              <option value="momentum">Momentum</option>
-              <option value="sgd">SGD</option>
-            </NativeSelect.Field>
-          </NativeSelect.Root>
-        </Flex>
+          {/* Controles globales */}
+          <Flex gap={2} flexWrap="wrap" align="center">
+            <Flex align="center" gap={1}>
+              <Text fontSize="11px" color="gray.400">Opt:</Text>
+              <NativeSelect.Root size="sm" w="auto">
+                <NativeSelect.Field value={t.optimizerType} onChange={e => t.setOptimizerType(e.target.value as OptimizerType)} fontSize="12px">
+                  <option value="adam">Adam</option>
+                  <option value="momentum">Momentum</option>
+                  <option value="sgd">SGD</option>
+                </NativeSelect.Field>
+              </NativeSelect.Root>
+            </Flex>
+            <Flex align="center" gap={1}>
+              <Text fontSize="11px" color="gray.400">lr:</Text>
+              <NativeSelect.Root size="sm" w="auto">
+                <NativeSelect.Field value={t.lr} onChange={e => t.setLr(Number(e.target.value))} fontSize="12px">
+                  {[0.1, 0.05, 0.01, 0.001].map(v => <option key={v} value={v}>{v}</option>)}
+                </NativeSelect.Field>
+              </NativeSelect.Root>
+            </Flex>
+            <Flex align="center" gap={1}>
+              <Text fontSize="11px" color="gray.400">vel:</Text>
+              <NativeSelect.Root size="sm" w="auto">
+                <NativeSelect.Field value={t.epf} onChange={e => t.setEpf(Number(e.target.value))} fontSize="12px">
+                  {[1, 5, 20, 50, 100].map(v => <option key={v} value={v}>{v} ép/f</option>)}
+                </NativeSelect.Field>
+              </NativeSelect.Root>
+            </Flex>
+          </Flex>
 
-        <Flex align="center" gap={1}>
-          <Text fontSize="11px" color="gray.500">lr:</Text>
-          <NativeSelect.Root size="sm" w="auto">
-            <NativeSelect.Field
-              value={t.lr}
-              onChange={e => t.setLr(Number(e.target.value))}
-              fontSize="12px"
-            >
-              {[0.1, 0.05, 0.01, 0.001].map(v => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </NativeSelect.Field>
-          </NativeSelect.Root>
-        </Flex>
+          {/* Métricas */}
+          <SimpleGrid columns={3} gap={3}>
+            <StatItem variant="compact" label="Épocas"    value={t.epochs} />
+            <StatItem variant="compact" label="Loss"      value={lossStr} />
+            <StatItem
+              variant="compact" label="Precisión" value={accuracyStr}
+              highlight={t.accuracy !== null && t.accuracy >= 0.95}
+            />
+          </SimpleGrid>
 
-        <Flex align="center" gap={1}>
-          <Text fontSize="11px" color="gray.500">vel:</Text>
-          <NativeSelect.Root size="sm" w="auto">
-            <NativeSelect.Field
-              value={t.epf}
-              onChange={e => t.setEpf(Number(e.target.value))}
-              fontSize="12px"
-            >
-              {[1, 5, 20, 50, 100].map(v => (
-                <option key={v} value={v}>{v} ép/frame</option>
-              ))}
-            </NativeSelect.Field>
-          </NativeSelect.Root>
+          {/* Botones */}
+          <Flex gap={2} flexWrap="wrap">
+            {!t.entrenando
+              ? <Button colorPalette="violet" size="sm" onClick={t.iniciar}>▶ Entrenar</Button>
+              : <Button colorPalette="orange" size="sm" onClick={t.pausar}>⏸ Pausar</Button>
+            }
+            <Button variant="outline" size="sm" onClick={t.resetear}>↺ Reiniciar pesos</Button>
+          </Flex>
+
+          {/* Explicación */}
+          <DetailsBox summary="¿Por qué importa la arquitectura?">
+            <BodyText>
+              <strong>Lineal vs no-lineal:</strong> sin capas ocultas, la red solo puede
+              trazar una línea recta. Muchos problemas (XOR, círculo, espiral) requieren
+              fronteras curvas — imposibles sin neuronas ocultas.
+            </BodyText>
+            <BodyText>
+              <strong>Truco del linear:</strong> añade capas ocultas con activación
+              <em> linear</em> — por muchas que pongas, matemáticamente equivalen a
+              una sola neurona. La no-linealidad (ReLU, Tanh…) es lo que da potencia real.
+            </BodyText>
+            <BodyText>
+              <strong>La espiral</strong> es el reto definitivo: necesitas 2-3 capas,
+              8-16 neuronas y la activación correcta. Con sigmoid suele colapsar;
+              prueba ReLU o Tanh.
+            </BodyText>
+          </DetailsBox>
         </Flex>
       </Flex>
-
-      {/* ── Canvas de frontera de decisión ───────────────────────────────── */}
-      <Box position="relative">
-        {/* Etiquetas de ejes */}
-        <Flex justify="space-between" w={`${CANVAS_W}px`} mb="2px">
-          <Text fontSize="9px" color="gray.400">↑ va la esposa</Text>
-          <Text fontSize="9px" color="gray.400">va la novia →</Text>
-        </Flex>
-        <DecisionCanvas
-          netRef={t.netRef}
-          points={t.points}
-          drawVersion={t.drawVersion}
-        />
-        {/* Leyenda debajo */}
-        <Flex gap={3} mt="4px" justify="center">
-          <Flex align="center" gap={1}>
-            <Box w="10px" h="10px" borderRadius="full" bg="indigo.400" />
-            <Text fontSize="10px" color="gray.500">🕺 voy</Text>
-          </Flex>
-          <Flex align="center" gap={1}>
-            <Box w="10px" h="10px" borderRadius="full" bg="red.400" />
-            <Text fontSize="10px" color="gray.500">😴💀 no voy</Text>
-          </Flex>
-        </Flex>
-      </Box>
-
-      {/* ── Hint / celebración ───────────────────────────────────────────── */}
-      {hint && (
-        <Badge
-          colorPalette={hint.color}
-          variant="subtle"
-          borderRadius="lg"
-          px={3} py={2}
-          fontSize="12px"
-          textAlign="center"
-          whiteSpace="normal"
-          maxW="400px"
-        >
-          {hint.msg}
-        </Badge>
-      )}
-
-      {/* ── Métricas ─────────────────────────────────────────────────────── */}
-      <SimpleGrid columns={3} gap={3} w="100%">
-        <StatItem variant="compact" label="Épocas"    value={t.epochs} />
-        <StatItem variant="compact" label="Loss"      value={lossStr} />
-        <StatItem
-          variant="compact"
-          label="Precisión"
-          value={accuracyStr}
-          highlight={t.accuracy !== null && t.accuracy >= 0.95}
-        />
-      </SimpleGrid>
-
-      {/* ── Botones ──────────────────────────────────────────────────────── */}
-      <Flex gap={2} flexWrap="wrap" justifyContent="center">
-        {!t.entrenando ? (
-          <Button colorPalette="violet" size="sm" onClick={t.iniciar}>▶ Entrenar</Button>
-        ) : (
-          <Button colorPalette="orange" size="sm" onClick={t.pausar}>⏸ Pausar</Button>
-        )}
-        <Button variant="outline" size="sm" onClick={t.resetear}>↺ Reiniciar pesos</Button>
-      </Flex>
-
-      {/* ── Explicación ──────────────────────────────────────────────────── */}
-      <DetailsBox summary="¿Por qué no funciona sin capas ocultas?">
-        <BodyText>
-          <strong>El problema XOR no es linealmente separable.</strong> Sin capas ocultas,
-          la red solo puede trazar una línea recta. Pero los casos "voy" (🕺🕺) están
-          en esquinas opuestas del cuadrado — ninguna línea recta los separa de los casos
-          "no voy" (😴💀).
-        </BodyText>
-        <BodyText>
-          <strong>Con una capa oculta</strong> de al menos 2 neuronas, la red puede aprender
-          dos fronteras y combinarlas. Cada neurona oculta aprende a detectar una condición
-          diferente; la salida aprende a combinarlas.
-        </BodyText>
-        <BodyText>
-          <strong>Truco:</strong> prueba añadir una capa con activación <em>linear</em>.
-          No importa cuántas capas lineales pongas — es matemáticamente equivalente a
-          una sola neurona. ¡Para resolver XOR necesitas no-linealidad!
-        </BodyText>
-      </DetailsBox>
-    </CardRoot>
+    </Flex>
   );
 }

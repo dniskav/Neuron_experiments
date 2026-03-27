@@ -1,4 +1,4 @@
-import { Box, Flex, Heading, Text } from "@chakra-ui/react";
+import { Box, Flex, Heading, Text, Separator } from "@chakra-ui/react";
 import { DetectorNeuron } from "./cards/NeuronCard";
 import { DetectorColor }  from "./cards/ColorCard";
 import { DetectorCirculo } from "./cards/CirculoCard";
@@ -48,8 +48,22 @@ export default function App() {
         <DetectorCañon />
         <DetectorLaberinto />
         <DetectorArkanoid />
-        <DetectorArquitecto />
       </Flex>
+
+      {/* ── Sección: Arquitecto de Redes ─────────────────────────────────── */}
+      <Separator mt={12} />
+      <Box py={14} px={6} bg="#0f172a">
+        <Box textAlign="center" mb={10}>
+          <Heading size="2xl" color="white" mb={2}>🧪 Arquitecto de Redes</Heading>
+          <Text color="gray.400" fontSize="md">
+            Construye tu propia red neuronal y resuelve problemas de clasificación 2D.
+            Añade capas, elige activaciones y ve la frontera de decisión en tiempo real.
+          </Text>
+        </Box>
+        <Flex justify="center" px={4}>
+          <DetectorArquitecto />
+        </Flex>
+      </Box>
     </Box>
   );
 }
