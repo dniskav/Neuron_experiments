@@ -24,6 +24,8 @@ interface Props {
   onRemove: (i: number) => void;
   onUpdate: (i: number, patch: Partial<LayerConfig>) => void;
   maxLayers?: number;
+  inputLabel?: string;
+  outputLabel?: string;
 }
 
 function Arrow() {
@@ -105,11 +107,11 @@ function HiddenLayerCard({
   );
 }
 
-export function LayerBuilder({ hiddenLayers, onAdd, onRemove, onUpdate, maxLayers = 5 }: Props) {
+export function LayerBuilder({ hiddenLayers, onAdd, onRemove, onUpdate, maxLayers = 5, inputLabel = "2 neuronas", outputLabel = "sigmoid" }: Props) {
   return (
     <Flex align="center" gap="6px" flexWrap="wrap" justify="center">
       {/* Capa de entrada (fija) */}
-      <FixedLayerBadge label="Entrada" sub="2 neuronas" color="#64748b" />
+      <FixedLayerBadge label="Entrada" sub={inputLabel} color="#64748b" />
       <Arrow />
 
       {/* Capas ocultas configurables */}
@@ -141,7 +143,7 @@ export function LayerBuilder({ hiddenLayers, onAdd, onRemove, onUpdate, maxLayer
       )}
 
       {/* Capa de salida (fija) */}
-      <FixedLayerBadge label="Salida" sub="sigmoid" color="#10b981" />
+      <FixedLayerBadge label="Salida" sub={outputLabel} color="#10b981" />
     </Flex>
   );
 }

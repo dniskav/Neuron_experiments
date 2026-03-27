@@ -111,6 +111,12 @@ function generarEspiral(n = 300): Point[] {
 
 // ── Catálogo ──────────────────────────────────────────────────────────────────
 
+// ── 6. Snake ──────────────────────────────────────────────────────────────────
+// El "problema" Snake no genera puntos 2D — es un placeholder que activa
+// el componente SnakeArquitecto en DetectorArquitecto.
+
+function generarSnake(): Point[] { return []; }
+
 export const PROBLEMS: Problem[] = [
   {
     id:          "diagonal",
@@ -186,5 +192,29 @@ export const PROBLEMS: Problem[] = [
       { minEpochs: 3000, maxAcc: 0.85, msg: "💪 La espiral es dura. Más neuronas, más capas, más tiempo. ¡No te rindas!" },
     ],
     generar: generarEspiral,
+  },
+  {
+    id:          "snake",
+    emoji:       "🐍",
+    titulo:      "Snake DQN",
+    nivel:       3,
+    descripcion: "Un agente aprende a jugar Snake usando Q-learning con replay buffer. " +
+                 "La red recibe 24 sensores (paredes, cuerpo, comida, dirección) y devuelve " +
+                 "3 Q-values. Diseña la arquitectura y observa cómo aprende.",
+    successMsg:  "🏆 ¡La serpiente domina el tablero!",
+    hints:       [],
+    generar:     generarSnake,
+  },
+  {
+    id:          "maze",
+    emoji:       "🗺️",
+    titulo:      "Laberinto LSTM",
+    nivel:       3,
+    descripcion: "Un agente con memoria LSTM navega un laberinto con 5 bifurcaciones. " +
+                 "Necesita recordar qué callejones ya exploró para no repetirlos. " +
+                 "Aprende con BPTT + TD(λ) sobre el episodio completo.",
+    successMsg:  "🏆 ¡El agente domina el laberinto!",
+    hints:       [],
+    generar:     generarSnake, // placeholder — MazeArquitecto no usa puntos 2D
   },
 ];

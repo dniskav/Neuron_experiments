@@ -24,6 +24,8 @@ import { TutorPanel } from "./TutorPanel";
 import { useTutor } from "./useTutor";
 import { useArquitectoTraining, type OptimizerType } from "./useArquitectoTraining";
 import { PROBLEMS, type Problem } from "./problems";
+import { SnakeArquitecto } from "./SnakeArquitecto";
+import { MazeArquitecto } from "./MazeArquitecto";
 
 // ── Selector de problema ──────────────────────────────────────────────────────
 
@@ -95,8 +97,10 @@ export function DetectorArquitecto() {
       {/* ── Selector de problema ───────────────────────────────────────── */}
       <ProblemSelector selected={selectedProblem} onChange={setSelectedProblem} />
 
-      {/* ── Layout principal: canvas izq, controles der ────────────────── */}
-      <Flex gap={8} align="flex-start" flexWrap="wrap" justify="center">
+      {/* ── Renderizado condicional: Snake vs clasificación ─────────────── */}
+      {selectedProblem.id === "snake" ? <SnakeArquitecto /> :
+       selectedProblem.id === "maze"  ? <MazeArquitecto  /> :
+       <Flex gap={8} align="flex-start" flexWrap="wrap" justify="center">
 
         {/* Columna izquierda: canvas */}
         <Flex direction="column" gap={3} align="center">
@@ -255,7 +259,8 @@ export function DetectorArquitecto() {
             </BodyText>
           </DetailsBox>
         </Flex>
-      </Flex>
+      </Flex>}
     </Flex>
   );
 }
+
