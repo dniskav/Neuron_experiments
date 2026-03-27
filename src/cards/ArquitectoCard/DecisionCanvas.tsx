@@ -19,12 +19,13 @@ const C_VOY  = [99,  102, 241] as const; // indigo
 const C_NOPE = [239,  68,  68] as const; // red
 
 interface Props {
-  netRef:      React.RefObject<NetworkN>;
-  points:      Point[];
-  drawVersion: number; // increments to trigger redraw
+  netRef:       React.RefObject<NetworkN>;
+  points:       Point[];
+  drawVersion:  number;
+  cornerLabels?: [string, string, string, string]; // [bottom-left, bottom-right, top-left, top-right]
 }
 
-export function DecisionCanvas({ netRef, points, drawVersion }: Props) {
+export function DecisionCanvas({ netRef, points, drawVersion, cornerLabels }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -76,17 +77,17 @@ export function DecisionCanvas({ netRef, points, drawVersion }: Props) {
       ctx.stroke();
     }
 
-    // ── Emojis en esquinas ─────────────────────────────────────────────────
-    ctx.font         = "18px serif";
-    ctx.textBaseline = "middle";
-
-    ctx.textAlign = "left";
-    ctx.fillText("😴", 6,           CANVAS_H - 13); // (0,0) → bottom-left
-    ctx.fillText("🕺", 6,           13);             // (0,1) → top-left
-
-    ctx.textAlign = "right";
-    ctx.fillText("🕺", CANVAS_W - 6, CANVAS_H - 13); // (1,0) → bottom-right
-    ctx.fillText("💀", CANVAS_W - 6, 13);             // (1,1) → top-right
+    // ── Etiquetas en esquinas (opcionales) ────────────────────────────────
+    if (cornerLabels) {
+      ctx.font         = "18px serif";
+      ctx.textBaseline = "middle";
+      ctx.textAlign    = "left";
+      ctx.fillText(cornerLabels[0], 6,           CANVAS_H - 13); // bottom-left
+      ctx.fillText(cornerLabels[2], 6,           13);             // top-left
+      ctx.textAlign = "right";
+      ctx.fillText(cornerLabels[1], CANVAS_W - 6, CANVAS_H - 13); // bottom-right
+      ctx.fillText(cornerLabels[3], CANVAS_W - 6, 13);             // top-right
+    }
 
   }, [drawVersion, netRef, points]);
 

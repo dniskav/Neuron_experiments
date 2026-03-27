@@ -18,14 +18,15 @@ export interface Hint {
 }
 
 export interface Problem {
-  id:          string;
-  emoji:       string;
-  titulo:      string;
-  nivel:       1 | 2 | 3;   // 1=verde 2=amarillo 3=rojo
-  descripcion: string;
-  successMsg:  string;
-  hints:       Hint[];
-  generar:     () => Point[];
+  id:           string;
+  emoji:        string;
+  titulo:       string;
+  nivel:        1 | 2 | 3;
+  descripcion:  string;
+  successMsg:   string;
+  hints:        Hint[];
+  generar:      () => Point[];
+  cornerLabels?: [string, string, string, string]; // [bottom-left, bottom-right, top-left, top-right]
 }
 
 // ── Utilidades ────────────────────────────────────────────────────────────────
@@ -152,7 +153,8 @@ export const PROBLEMS: Problem[] = [
       { minEpochs: 300, maxAcc: 0.65, noLayers: true, msg: "🤔 Una neurona sola no puede resolver XOR. Añade una capa oculta." },
       { minEpochs: 800, maxAcc: 0.75, msg: "🧠 Prueba más neuronas o cambia la activación (Leaky ReLU suele ir bien aquí)." },
     ],
-    generar: generarFiesta,
+    generar:      generarFiesta,
+    cornerLabels: ["😴", "🕺", "🕺", "💀"],
   },
   {
     id:          "circulo",

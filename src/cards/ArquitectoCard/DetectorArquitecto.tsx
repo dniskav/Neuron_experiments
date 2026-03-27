@@ -7,7 +7,6 @@
 
 import { useState, useMemo } from "react";
 import {
-  Badge,
   Box,
   Button,
   Flex,
@@ -21,6 +20,8 @@ import type { ActivationType } from "../../components/lib";
 import { DecisionCanvas, CANVAS_W } from "./DecisionCanvas";
 import { LayerBuilder } from "./LayerBuilder";
 import { ActivationGuide } from "./ActivationGuide";
+import { TutorPanel } from "./TutorPanel";
+import { useTutor } from "./useTutor";
 import { useArquitectoTraining, type OptimizerType } from "./useArquitectoTraining";
 import { PROBLEMS, type Problem } from "./problems";
 
@@ -69,23 +70,21 @@ export function DetectorArquitecto() {
   const [selectedProblem, setSelectedProblem] = useState<Problem>(PROBLEMS[2]); // fiesta por defecto
   const t = useArquitectoTraining(selectedProblem);
 
+  const tutorMsg = useTutor({
+    problem:       selectedProblem,
+    hiddenLayers:  t.hiddenLayers,
+    optimizerType: t.optimizerType,
+    lr:            t.lr,
+    epochs:        t.epochs,
+    accuracy:      t.accuracy,
+    loss:          t.loss,
+  });
+
   const networkLayers = useMemo(() => [
     { size: 2 },
     ...t.hiddenLayers.map(l => ({ size: l.neurons, activation: l.activation as ActivationType })),
     { size: 1, activation: "sigmoid" as ActivationType },
   ], [t.hiddenLayers]);
-
-  const hint = useMemo(() => {
-    if (t.accuracy !== null && t.accuracy >= 0.95)
-      return { color: "green", msg: selectedProblem.successMsg };
-    for (const h of selectedProblem.hints) {
-      const accOk    = (t.accuracy ?? 0) < h.maxAcc;
-      const epochsOk = t.epochs >= h.minEpochs;
-      const layersOk = h.noLayers === undefined || h.noLayers === (t.hiddenLayers.length === 0);
-      if (accOk && epochsOk && layersOk) return { color: "orange", msg: h.msg };
-    }
-    return null;
-  }, [t.accuracy, t.epochs, t.hiddenLayers.length, selectedProblem]);
 
   const accuracyStr = t.accuracy !== null ? `${(t.accuracy * 100).toFixed(1)} %` : "—";
   const lossStr     = t.loss     !== null ? t.loss.toFixed(4) : "—";
@@ -110,6 +109,7 @@ export function DetectorArquitecto() {
             netRef={t.netRef}
             points={t.points}
             drawVersion={t.drawVersion}
+            cornerLabels={selectedProblem.cornerLabels}
           />
 
           {/* Leyenda */}
@@ -124,21 +124,6 @@ export function DetectorArquitecto() {
             </Flex>
           </Flex>
 
-          {/* Hint / celebración */}
-          {hint && (
-            <Badge
-              colorPalette={hint.color}
-              variant="subtle"
-              borderRadius="lg"
-              px={3} py={2}
-              fontSize="12px"
-              textAlign="center"
-              whiteSpace="normal"
-              maxW={`${CANVAS_W}px`}
-            >
-              {hint.msg}
-            </Badge>
-          )}
         </Flex>
 
         {/* Columna derecha: controles */}
@@ -242,6 +227,9 @@ export function DetectorArquitecto() {
             }
             <Button variant="outline" size="sm" onClick={t.resetear}>↺ Reiniciar pesos</Button>
           </Flex>
+
+          {/* Tutor contextual */}
+          {tutorMsg && <TutorPanel message={tutorMsg} />}
 
           {/* Guía de activaciones */}
           <DetailsBox summary="¿Qué activación usar? Guía visual">
