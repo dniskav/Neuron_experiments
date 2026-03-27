@@ -20,6 +20,7 @@ import { StatItem, DetailsBox, BodyText, NetworkDiagram } from "../../components
 import type { ActivationType } from "../../components/lib";
 import { DecisionCanvas, CANVAS_W } from "./DecisionCanvas";
 import { LayerBuilder } from "./LayerBuilder";
+import { ActivationGuide } from "./ActivationGuide";
 import { useArquitectoTraining, type OptimizerType } from "./useArquitectoTraining";
 import { PROBLEMS, type Problem } from "./problems";
 
@@ -242,7 +243,12 @@ export function DetectorArquitecto() {
             <Button variant="outline" size="sm" onClick={t.resetear}>↺ Reiniciar pesos</Button>
           </Flex>
 
-          {/* Explicación */}
+          {/* Guía de activaciones */}
+          <DetailsBox summary="¿Qué activación usar? Guía visual">
+            <ActivationGuide />
+          </DetailsBox>
+
+          {/* Explicación arquitectura */}
           <DetailsBox summary="¿Por qué importa la arquitectura?">
             <BodyText>
               <strong>Lineal vs no-lineal:</strong> sin capas ocultas, la red solo puede
