@@ -5,7 +5,8 @@ import { DetectorCirculo } from "./cards/CirculoCard";
 import { DetectorAngryBird } from "./cards/AngryBirdCard";
 import { DetectorCañon } from "./cards/CañonCard";
 import { DetectorLaberinto } from "./cards/LaberintoCard";
-import { DetectorArkanoid }  from "./cards/ArkanoidCard";
+import { DetectorArkanoid }   from "./cards/ArkanoidCard";
+import { DetectorArquitecto } from "./cards/ArquitectoCard";
 import datosMayor   from "./data/datos.json";
 import datosAnciano from "./data/datos_anciano.json";
 
@@ -47,6 +48,7 @@ export default function App() {
         <DetectorCañon />
         <DetectorLaberinto />
         <DetectorArkanoid />
+        <DetectorArquitecto />
       </Flex>
     </Box>
   );

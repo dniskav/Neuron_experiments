@@ -1,0 +1,1 @@
+export { DetectorArquitecto } from "./DetectorArquitecto";
