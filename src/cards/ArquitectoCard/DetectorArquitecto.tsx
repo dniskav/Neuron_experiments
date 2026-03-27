@@ -57,9 +57,12 @@ export function DetectorArquitecto() {
       <Heading size="md" color="gray.800">Arquitecto de Redes · ¿Voy a la fiesta?</Heading>
 
       <Text fontSize="sm" color="gray.500" textAlign="center" maxW="460px">
-        Construye tu propia red neuronal para resolver este problema. Añade capas, ajusta
-        neuronas y elige activaciones hasta que la red lo resuelva.{" "}
-        <em>¿Cuántas capas necesitas?</em>
+        Tienes un problema serio: <strong>¿vas o no vas a la fiesta?</strong> Vas si viene
+        tu novia <em>o</em> tu esposa — pero no si vienen las dos a la vez (te matan 💀),
+        y tampoco si no viene ninguna (qué aburrimiento 😴). Es decir: exactamente una de
+        las dos. La red tiene que aprenderlo sola — tú decides cuántas capas y neuronas
+        le das.{" "}
+        <em>Spoiler: sin capas ocultas, es imposible. 😈</em>
       </Text>
 
       {/* ── Tabla de verdad (contexto narrativo) ─────────────────────────── */}
