@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Button, Flex, HStack, Heading, Input, Text, VStack } from "@chakra-ui/react";
 import { CardRoot, SectionLabel, TrainingControls, WeightsDisplay } from "../../components/lib";
 import { useNeuronTraining } from "./useNeuronTraining";
 import { NormalizationBox } from "./NormalizationBox";
 import { PredictionHeatmap } from "./PredictionHeatmap";
+import { ThresholdCanvas } from "./ThresholdCanvas";
 import type { DetectorNeuronProps } from "./types";
 
 export function DetectorNeuron({
@@ -35,6 +36,10 @@ export function DetectorNeuron({
 
   const [edad, setEdad] = useState<string>("");
   const [prediccion, setPrediccion] = useState<{ confianza: number; esPositivo: boolean } | null>(null);
+  const [drawVersion, setDrawVersion] = useState(0);
+
+  // Redibujar canvas cada vez que cambien los pesos (tras entrenar o reiniciar)
+  useEffect(() => { setDrawVersion(v => v + 1); }, [neurona]);
 
   const edades = datos.map(([e]) => e);
 
@@ -102,6 +107,15 @@ export function DetectorNeuron({
         edadesRange={[edadesVisualizacion[0], edadesVisualizacion[edadesVisualizacion.length - 1]]}
         etiquetaPositivo={etiquetaPositivo}
         etiquetaNegativo={etiquetaNegativo}
+      />
+
+      {/* FRONTERA DE DECISIÓN */}
+      <ThresholdCanvas
+        neurona={neurona}
+        escalar={escalar}
+        datos={datos}
+        edadesRange={[edadesVisualizacion[0], edadesVisualizacion[edadesVisualizacion.length - 1]]}
+        drawVersion={drawVersion}
       />
 
       {/* ENTRENAMIENTO */}

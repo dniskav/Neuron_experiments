@@ -54,14 +54,42 @@ function calcAccuracy(net: NetworkN, points: { x: number; y: number; label: numb
 
 // ── Hook principal ────────────────────────────────────────────────────────────
 
-export function useArquitectoTraining(problem: Problem) {
-  const [hiddenLayers,  setHiddenLayers]  = useState<LayerConfig[]>([]);
-  const [optimizerType, setOptimizerType] = useState<OptimizerType>("adam");
+// ── Tipos de config de arquitectura por problema ──────────────────────────────
 
-  const lrRef            = useRef(0.05);
-  const [lr, setLrState] = useState(0.05);
-  const epfRef           = useRef(20);
-  const [epf, setEpfState] = useState(20);
+interface ArchConfig {
+  hiddenLayers:  LayerConfig[];
+  optimizerType: OptimizerType;
+  lr:            number;
+  epf:           number;
+}
+
+// Valores por defecto por nivel de dificultad
+function defaultArch(problem: Problem): ArchConfig {
+  return {
+    hiddenLayers:  [],
+    optimizerType: "adam",
+    lr:            problem.nivel >= 3 ? 0.01 : 0.05,
+    epf:           20,
+  };
+}
+
+export function useArquitectoTraining(problem: Problem) {
+  // Archivo de configuraciones por problema (persiste durante la sesión)
+  const archiveRef = useRef<Record<string, ArchConfig>>({});
+  const prevProblemIdRef = useRef<string>(problem.id);
+
+  const getArch = (id: string): ArchConfig =>
+    archiveRef.current[id] ?? defaultArch(problem);
+
+  const initial = getArch(problem.id);
+
+  const [hiddenLayers,  setHiddenLayers]  = useState<LayerConfig[]>(initial.hiddenLayers);
+  const [optimizerType, setOptimizerType] = useState<OptimizerType>(initial.optimizerType);
+
+  const lrRef            = useRef(initial.lr);
+  const [lr, setLrState] = useState(initial.lr);
+  const epfRef           = useRef(initial.epf);
+  const [epf, setEpfState] = useState(initial.epf);
 
   const netRef         = useRef<NetworkN>(buildNet([], "adam"));
   const runningRef     = useRef(false);
@@ -81,6 +109,29 @@ export function useArquitectoTraining(problem: Problem) {
   // ── Rebuild en cambio de arquitectura, optimizador o problema ─────────────
 
   useEffect(() => {
+    const prevId = prevProblemIdRef.current;
+
+    if (prevId !== problem.id) {
+      // Save current arch before switching
+      archiveRef.current[prevId] = {
+        hiddenLayers,
+        optimizerType,
+        lr:  lrRef.current,
+        epf: epfRef.current,
+      };
+      prevProblemIdRef.current = problem.id;
+
+      // Restore arch for new problem
+      const saved = archiveRef.current[problem.id] ?? defaultArch(problem);
+      setHiddenLayers(saved.hiddenLayers);
+      setOptimizerType(saved.optimizerType);
+      lrRef.current  = saved.lr;
+      epfRef.current = saved.epf;
+      setLrState(saved.lr);
+      setEpfState(saved.epf);
+      return; // state changes will re-trigger this effect to rebuild the net
+    }
+
     runningRef.current = false;
     if (animRef.current !== null) { cancelAnimationFrame(animRef.current); animRef.current = null; }
     netRef.current       = buildNet(hiddenLayers, optimizerType);

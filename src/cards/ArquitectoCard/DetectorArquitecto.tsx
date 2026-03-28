@@ -5,7 +5,7 @@
 // de decisión actualizarse en tiempo real.
 //
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Button,
@@ -27,37 +27,81 @@ import { PROBLEMS, type Problem } from "./problems";
 import { SnakeArquitecto } from "./SnakeArquitecto";
 import { MazeArquitecto } from "./MazeArquitecto";
 
+// ── Lógica de éxito ───────────────────────────────────────────────────────────
+
+const SUCCESS_THRESHOLD: Record<number, number> = { 1: 0.95, 2: 0.90, 3: 0.85 };
+const SOLVED_KEY = "arquitecto-solved";
+
+function loadSolved(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(SOLVED_KEY) ?? "[]")); }
+  catch { return new Set(); }
+}
+function saveSolved(ids: Set<string>) {
+  try { localStorage.setItem(SOLVED_KEY, JSON.stringify([...ids])); } catch { /* quota */ }
+}
+
+// ── Banner de éxito ───────────────────────────────────────────────────────────
+
+function SuccessBanner({ msg }: { msg: string }) {
+  return (
+    <Box
+      bg="linear-gradient(135deg, #052e16 0%, #064e3b 100%)"
+      border="1.5px solid #22c55e"
+      borderRadius="xl"
+      p={4}
+      textAlign="center"
+    >
+      <Text fontSize="28px" mb={1}>🏆</Text>
+      <Text fontSize="14px" fontWeight={700} color="#4ade80" lineHeight={1.4}>
+        {msg}
+      </Text>
+    </Box>
+  );
+}
+
 // ── Selector de problema ──────────────────────────────────────────────────────
 
 const NIVEL_COLOR: Record<number, string> = { 1: "#10b981", 2: "#f59e0b", 3: "#ef4444" };
 
 function ProblemSelector({
-  selected, onChange,
-}: { selected: Problem; onChange: (p: Problem) => void }) {
+  selected, onChange, problems, solved,
+}: { selected: Problem; onChange: (p: Problem) => void; problems: Problem[]; solved: Set<string> }) {
   return (
     <Flex gap={2} flexWrap="wrap" justify="center">
-      {PROBLEMS.map(p => (
-        <Button
-          key={p.id}
-          size="sm"
-          variant={selected.id === p.id ? "solid" : "subtle"}
-          colorPalette={selected.id === p.id ? "violet" : "gray"}
-          onClick={() => onChange(p)}
-          borderWidth={selected.id === p.id ? 0 : "1.5px"}
-          borderColor="gray.200"
-        >
-          <Box
-            as="span"
-            display="inline-block"
-            w="8px" h="8px"
-            borderRadius="full"
-            bg={NIVEL_COLOR[p.nivel]}
-            mr={1}
-            flexShrink={0}
-          />
-          {p.emoji} {p.titulo}
-        </Button>
-      ))}
+      {problems.map(p => {
+        const isSolved = solved.has(p.id);
+        return (
+          <Button
+            key={p.id}
+            size="sm"
+            variant={selected.id === p.id ? "solid" : "subtle"}
+            colorPalette={selected.id === p.id ? "violet" : "gray"}
+            onClick={() => onChange(p)}
+            borderWidth={selected.id === p.id ? 0 : "1.5px"}
+            borderColor="gray.200"
+          >
+            <Box
+              as="span"
+              display="inline-block"
+              w="8px" h="8px"
+              borderRadius="full"
+              bg={NIVEL_COLOR[p.nivel]}
+              mr={1}
+              flexShrink={0}
+            />
+            {p.emoji} {p.titulo}
+            {isSolved && (
+              <Box
+                as="span"
+                ml={1}
+                fontSize="10px"
+                color="#4ade80"
+                fontWeight={800}
+              >✓</Box>
+            )}
+          </Button>
+        );
+      })}
     </Flex>
   );
 }
@@ -70,10 +114,19 @@ const OPT_LABEL: Record<OptimizerType, string> = {
 
 const STORAGE_KEY = "arquitecto-selected-problem";
 
-export function DetectorArquitecto() {
+interface DetectorArquitectoProps {
+  problemIds?: string[]; // si se pasa, solo muestra esos problemas
+}
+
+export function DetectorArquitecto({ problemIds }: DetectorArquitectoProps = {}) {
+  const visibleProblems = problemIds
+    ? PROBLEMS.filter(p => problemIds.includes(p.id))
+    : PROBLEMS;
+
   const [selectedProblem, setSelectedProblem] = useState<Problem>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return PROBLEMS.find(p => p.id === saved) ?? PROBLEMS[2];
+    const match = visibleProblems.find(p => p.id === saved);
+    return match ?? visibleProblems[0];
   });
 
   const handleSelect = (p: Problem) => {
@@ -98,6 +151,21 @@ export function DetectorArquitecto() {
     { size: 1, activation: "sigmoid" as ActivationType },
   ], [t.hiddenLayers]);
 
+  const [solved, setSolved] = useState<Set<string>>(loadSolved);
+
+  // Detectar éxito en problemas de clasificación
+  useEffect(() => {
+    if (t.accuracy === null) return;
+    const threshold = SUCCESS_THRESHOLD[selectedProblem.nivel];
+    if (t.accuracy >= threshold && !solved.has(selectedProblem.id)) {
+      const next = new Set(solved).add(selectedProblem.id);
+      setSolved(next);
+      saveSolved(next);
+    }
+  }, [t.accuracy, selectedProblem.id, selectedProblem.nivel, solved]);
+
+  const isSolvedNow = solved.has(selectedProblem.id);
+
   const accuracyStr = t.accuracy !== null ? `${(t.accuracy * 100).toFixed(1)} %` : "—";
   const lossStr     = t.loss     !== null ? t.loss.toFixed(4) : "—";
 
@@ -105,7 +173,7 @@ export function DetectorArquitecto() {
     <Flex direction="column" gap={6} align="center" w="100%">
 
       {/* ── Selector de problema ───────────────────────────────────────── */}
-      <ProblemSelector selected={selectedProblem} onChange={handleSelect} />
+      <ProblemSelector selected={selectedProblem} onChange={handleSelect} problems={visibleProblems} solved={solved} />
 
       {/* ── Renderizado condicional: Snake vs clasificación ─────────────── */}
       {selectedProblem.id === "snake" ? <SnakeArquitecto /> :
@@ -242,8 +310,11 @@ export function DetectorArquitecto() {
             <Button variant="outline" size="sm" onClick={t.resetear}>↺ Reiniciar pesos</Button>
           </Flex>
 
+          {/* Banner de éxito */}
+          {isSolvedNow && <SuccessBanner msg={selectedProblem.successMsg} />}
+
           {/* Tutor contextual */}
-          {tutorMsg && <TutorPanel message={tutorMsg} />}
+          {!isSolvedNow && tutorMsg && <TutorPanel message={tutorMsg} />}
 
           {/* Guía de activaciones */}
           <DetailsBox summary="¿Qué activación usar? Guía visual">

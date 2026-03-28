@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Button, Flex, HStack, Heading, Text, VStack } from "@chakra-ui/react";
 import { CardRoot, SectionLabel, TrainingControls } from "../../components/lib";
 import { clasificar, luminancia } from "../../data/datosColor";
 import { PanelNeurona } from "./PanelNeurona";
 import { useColorTraining } from "./useColorTraining";
-import { hexToRgb, CLASE_ESTILO, limpiarFormatoViejo } from "./utils";
+import { hexToRgb, CLASE_ESTILO, limpiarFormatoViejo, MUESTRAS } from "./utils";
 import { OutputRulesBox } from "./OutputRulesBox";
 import { ColorSwatchGrid } from "./ColorSwatchGrid";
+import { ColorDecisionCanvas } from "./ColorDecisionCanvas";
 
 // Limpia datos del formato antiguo al cargar el módulo
 limpiarFormatoViejo();
@@ -27,6 +28,8 @@ export function DetectorColor() {
   } = useColorTraining();
 
   const [colorHex, setColorHex] = useState("#3b82f6");
+  const [drawVersion, setDrawVersion] = useState(0);
+  useEffect(() => { setDrawVersion(v => v + 1); }, [n1, n2]);
 
   const rgb      = hexToRgb(colorHex);
   const s1       = n1.predict(rgb);
@@ -60,6 +63,14 @@ export function DetectorColor() {
 
       {/* REGLAS */}
       <OutputRulesBox />
+
+      {/* FRONTERA DE DECISIÓN */}
+      <ColorDecisionCanvas
+        n1={n1}
+        n2={n2}
+        muestras={MUESTRAS}
+        drawVersion={drawVersion}
+      />
 
       {/* MUESTRAS */}
       <ColorSwatchGrid muestras={muestras} />
