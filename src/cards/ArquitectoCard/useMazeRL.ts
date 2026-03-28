@@ -19,9 +19,7 @@ import type { StepBuf } from "../LaberintoCard/types";
 
 export const N_IN         = 12;
 export const N_OUT        = 3;
-const GAMMA               = 0.95;
-const LAMBDA              = 0.85;
-const R_SCALE             = 14;
+
 const MAX_PASOS           = 600;
 const PASOS_FRAME_TRAIN   = 3;
 const MAX_TRAIL           = 150;

@@ -68,8 +68,18 @@ const OPT_LABEL: Record<OptimizerType, string> = {
   sgd: "SGD", momentum: "Momentum", adam: "Adam",
 };
 
+const STORAGE_KEY = "arquitecto-selected-problem";
+
 export function DetectorArquitecto() {
-  const [selectedProblem, setSelectedProblem] = useState<Problem>(PROBLEMS[2]); // fiesta por defecto
+  const [selectedProblem, setSelectedProblem] = useState<Problem>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return PROBLEMS.find(p => p.id === saved) ?? PROBLEMS[2];
+  });
+
+  const handleSelect = (p: Problem) => {
+    localStorage.setItem(STORAGE_KEY, p.id);
+    setSelectedProblem(p);
+  };
   const t = useArquitectoTraining(selectedProblem);
 
   const tutorMsg = useTutor({
@@ -95,7 +105,7 @@ export function DetectorArquitecto() {
     <Flex direction="column" gap={6} align="center" w="100%">
 
       {/* ── Selector de problema ───────────────────────────────────────── */}
-      <ProblemSelector selected={selectedProblem} onChange={setSelectedProblem} />
+      <ProblemSelector selected={selectedProblem} onChange={handleSelect} />
 
       {/* ── Renderizado condicional: Snake vs clasificación ─────────────── */}
       {selectedProblem.id === "snake" ? <SnakeArquitecto /> :
