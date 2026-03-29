@@ -34,6 +34,7 @@ const GOAL_MIN_STEPS  = 150;
 export const STOP_DIST = AGENT_D;
 const BRAKE_ZONE      = AGENT_D * 2;
 const TURN_ZONE       = AGENT_D * 8;
+const MAX_EP_STEPS_L1 = 300;
 const MAX_EP_STEPS_L2 = 400;
 const MAX_EP_STEPS_L3 = 1200;
 const MAX_EP_STEPS_L4 = 1500;
@@ -133,6 +134,7 @@ export function useAgentRL(level: Level = 1, initialHiddenLayers: HiddenLayer[] 
   const successHistRef  = useRef<boolean[]>([]);
   const fwdWindowRef    = useRef<number[]>([]);
   const lastActionRef   = useRef(0);
+  const solvedRef       = useRef(false);
 
   const [stats, setStats] = useState<AgentStats>({ ...EMPTY_STATS, agent: agentRef.current });
 
@@ -152,6 +154,7 @@ export function useAgentRL(level: Level = 1, initialHiddenLayers: HiddenLayer[] 
     historyRef.current     = [];
     successHistRef.current = [];
     fwdWindowRef.current   = [];
+    solvedRef.current      = false;
     setStats(s => ({ ...s, ...EMPTY_STATS, agent: agentRef.current }));
     if (wasRunning) {
       setTimeout(() => {
@@ -215,6 +218,7 @@ export function useAgentRL(level: Level = 1, initialHiddenLayers: HiddenLayer[] 
       const done        = rawDone || tooClose || successStop;
 
       const epTimeout = !done && (
+        (lv === 1 && stepsRef.current >= MAX_EP_STEPS_L1) ||
         (lv === 2 && stepsRef.current >= MAX_EP_STEPS_L2) ||
         (lv === 3 && stepsRef.current >= MAX_EP_STEPS_L3) ||
         (lv === 4 && stepsRef.current >= MAX_EP_STEPS_L4)
@@ -222,16 +226,29 @@ export function useAgentRL(level: Level = 1, initialHiddenLayers: HiddenLayer[] 
 
       // ── Reward shaping ──────────────────────────────────────────────────────
       let reward = rawReward;
-      if (lv === 2) {
+      if (lv === 1) {
+        if (action !== 0) reward = -1; // penalizar frenar: ir adelante siempre es mejor
+      } else if (lv === 2) {
         if      (successStop)                               reward = +10;
         else if (tooClose && !rawDone)                      reward = -20;
         else if (action === 0 && curFrontPx > BRAKE_ZONE)  reward = +0.5;
         else if (action === 1 && curFrontPx > BRAKE_ZONE)  reward = -3;
       } else if (lv === 3 || lv === 4) {
         const frontClear = curFrontPx > TURN_ZONE;
-        if      (action === 0 &&  frontClear)               reward = rawReward + 1;
-        else if (action !== 0 &&  frontClear)               reward = -5;
-        else if (action !== 0 && !frontClear)               reward = +2;
+        if (action === 0 && frontClear) {
+          reward = rawReward + 1;
+        } else if (action !== 0 && frontClear) {
+          reward = -5;
+        } else if (action !== 0 && !frontClear) {
+          if (lv === 4) {
+            const ld = leftDist(agentRef.current, obstacles) * SENSOR_MAX;
+            const rd = rightDist(agentRef.current, obstacles) * SENSOR_MAX;
+            const towardOpen = (action === 1 && ld > rd) || (action === 2 && rd > ld);
+            reward = towardOpen ? +4 : +1;
+          } else {
+            reward = +2;
+          }
+        }
       }
 
       // ── Q-learning update ───────────────────────────────────────────────────
@@ -303,10 +320,12 @@ export function useAgentRL(level: Level = 1, initialHiddenLayers: HiddenLayer[] 
     const fwdPct      = fwd.length ? fwd.filter(a => a === 0).length / fwd.length : 0;
     const succHist    = successHistRef.current;
     const successRate = succHist.length ? succHist.filter(Boolean).length / succHist.length : 0;
-    const solved      = lv === 1 ? (totalStepsRef.current >= GOAL_MIN_STEPS && fwdPct >= GOAL_FWD)
+    const solvedNow   = lv === 1 ? (totalStepsRef.current >= GOAL_MIN_STEPS && fwdPct >= GOAL_FWD)
                       : lv === 2 ? (succHist.length >= 10 && successRate >= GOAL_SUCCESS_RATE)
                       : lv === 3 ? (hist.length >= 10 && avg >= GOAL_STEPS_L3)
                       :            (hist.length >= 10 && avg >= GOAL_STEPS_L4);
+    if (solvedNow) solvedRef.current = true;
+    const solved = solvedRef.current;
 
     setStats({
       agent:        agentRef.current,
@@ -367,6 +386,7 @@ export function useAgentRL(level: Level = 1, initialHiddenLayers: HiddenLayer[] 
     historyRef.current     = [];
     successHistRef.current = [];
     fwdWindowRef.current   = [];
+    solvedRef.current      = false;
     setStats({ ...EMPTY_STATS, agent: agentRef.current });
   }, [pause, hiddenLayers]);
 
