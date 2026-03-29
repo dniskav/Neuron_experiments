@@ -5,6 +5,8 @@
 //
 
 import { useMemo, useState, useEffect } from 'react'
+import { useObstacles } from './hooks/useObstacles'
+import { useSpeedControls } from './hooks/useSpeedControls'
 import { Box, Button, Flex, Text } from '@chakra-ui/react'
 import { NetworkDiagram } from '../../../components/lib'
 import type { ActivationType } from '../../../components/lib'
@@ -12,7 +14,7 @@ import { LayerBuilder } from '../../../components/shared/LayerBuilder'
 import type { LayerConfig } from '../../ArquitectoCard/hooks/training/useArquitectoTraining'
 import { AgentCanvas } from '../AgentCanvas'
 import { useAgentRL, DEFAULT_HIDDEN } from '../useAgentRL'
-import type { Level, HiddenLayer, Obstacle } from '../useAgentRL'
+import type { Level, HiddenLayer } from '../useAgentRL'
 import { LEVEL_INFO } from './levelInfo'
 import { GoalBar } from './GoalBar'
 import { ActionIndicator } from '../../../components/shared/ActionIndicator'
@@ -44,11 +46,8 @@ function loadLayers(): HiddenLayer[] {
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export function RobotAgent() {
-  const [level, setLevel]           = useState<Level>(loadLevel)
-  const [initialLayers]             = useState<HiddenLayer[]>(loadLayers)
-  const [speedDisplay, setSpeedDisplay]           = useState(0.1)
-  const [trainSpeedDisplay, setTrainSpeedDisplay] = useState(1)
-  const [obstacles, setObstacles] = useState<(Obstacle | null)[]>([null, null])
+  const [level, setLevel]  = useState<Level>(loadLevel)
+  const [initialLayers]    = useState<HiddenLayer[]>(loadLayers)
 
   const {
     stats, trailRef, agentRef, activationsRef,
@@ -57,9 +56,8 @@ export function RobotAgent() {
     testingRef, speedRef, trainSpeedRef, obstaclesRef,
   } = useAgentRL(level, initialLayers)
 
-  useEffect(() => {
-    obstaclesRef.current = obstacles.filter(Boolean) as Obstacle[]
-  }, [obstacles, obstaclesRef])
+  const { speedDisplay, trainSpeedDisplay, handleSpeed, handleTrainSpeed } = useSpeedControls({ speedRef, trainSpeedRef })
+  const { obstacles, activeObstacles, handleObstacleChange } = useObstacles(obstaclesRef)
 
   const {
     running, episodes, currentSteps, avgSteps, bestSteps,
@@ -87,14 +85,6 @@ export function RobotAgent() {
 
   function goLevel(l: Level) { pause(); setLevel(l) }
   function goNextLevel() { goLevel((Math.min(level + 1, 4)) as Level) }
-  function handleSpeed(v: number) { speedRef.current = v; setSpeedDisplay(v) }
-  function handleTrainSpeed(v: number) { trainSpeedRef.current = v; setTrainSpeedDisplay(v) }
-
-  const activeObstacles = obstacles.filter(Boolean) as Obstacle[]
-
-  function handleObstacleChange(index: number, value: Obstacle | null) {
-    setObstacles(prev => prev.map((o, i) => i === index ? value : o))
-  }
 
   return (
     <Flex gap={8} align="flex-start" flexWrap="wrap" justify="center">
