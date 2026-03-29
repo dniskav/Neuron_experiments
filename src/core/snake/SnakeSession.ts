@@ -145,6 +145,7 @@ interface SnakeRefs {
   net:         Ref<NetworkN>
   lr:          Ref<number>
   demoSpeed:   Ref<number>
+  trainSpeed:  Ref<number>
 }
 
 // ── SnakeSession ──────────────────────────────────────────────────────────────
@@ -322,51 +323,57 @@ export class SnakeSession {
   private readonly _loop = () => {
     if (!this.running) return
 
-    const state = this.refs.state.current
-    const s     = getInputs(state)
-    const q     = this.net.predict(s)
-    const a     = greedyAction(q, this.epsilon)
-    const { next, reward, done } = stepSnake(state, a)
-    const sn    = getInputs(next)
+    const stepsCount = Math.max(1, Math.round(this.refs.trainSpeed.current))
 
-    this.buf.push({ s, a, r: reward, sn, done })
-    this.refs.state.current = next
-    this.steps++
-    this.drawVersion++
+    for (let i = 0; i < stepsCount; i++) {
+      const state = this.refs.state.current
+      const s     = getInputs(state)
+      const q     = this.net.predict(s)
+      const a     = greedyAction(q, this.epsilon)
+      const { next, reward, done } = stepSnake(state, a)
+      const sn    = getInputs(next)
 
-    this.epsilon = Math.max(EPS_END, EPS_START - this.steps * EPS_DECAY)
+      this.buf.push({ s, a, r: reward, sn, done })
+      this.refs.state.current = next
+      this.steps++
+      this.drawVersion++
 
-    if (this.buf.size >= BATCH_SIZE) {
-      for (const exp of this.buf.sample(BATCH_SIZE)) {
-        const nextQ      = this.net.predict(exp.sn)
-        const target     = [...this.net.predict(exp.s)]
-        target[exp.a] = exp.done ? exp.r : exp.r + GAMMA * Math.max(...nextQ)
-        this.net.train(exp.s, target, this.refs.lr.current)
+      this.epsilon = Math.max(EPS_END, EPS_START - this.steps * EPS_DECAY)
+
+      if (this.buf.size >= BATCH_SIZE) {
+        for (const exp of this.buf.sample(BATCH_SIZE)) {
+          const nextQ   = this.net.predict(exp.sn)
+          const target  = [...this.net.predict(exp.s)]
+          target[exp.a] = exp.done ? exp.r : exp.r + GAMMA * Math.max(...nextQ)
+          this.net.train(exp.s, target, this.refs.lr.current)
+        }
+      }
+
+      if (i === stepsCount - 1) {
+        this.refs.activations.current = computeActs(this.net, s)
+      }
+
+      if (done) {
+        if (next.score > this.bestScore) this.bestScore = next.score
+        this.episodes++
+        this.refs.state.current = initSnake()
+
+        if (this.episodes % 10 === 0) {
+          saveToStorage(this.net, this.hiddenLayers, this.steps, this.epsilon, this.episodes, this.bestScore)
+          this.hasSave = true
+          this.leaderboard = upsertLeaderboard({
+            hidden:    this.hiddenLayers,
+            optimizer: this.optimizerType,
+            lr:        this.refs.lr.current,
+            bestScore: this.bestScore,
+            episodes:  this.episodes,
+            steps:     this.steps,
+          })
+        }
       }
     }
 
-    this.refs.activations.current = computeActs(this.net, s)
-
-    if (done) {
-      if (next.score > this.bestScore) this.bestScore = next.score
-      this.episodes++
-      this.refs.state.current = initSnake()
-
-      if (this.episodes % 10 === 0) {
-        saveToStorage(this.net, this.hiddenLayers, this.steps, this.epsilon, this.episodes, this.bestScore)
-        this.hasSave = true
-        this.leaderboard = upsertLeaderboard({
-          hidden:    this.hiddenLayers,
-          optimizer: this.optimizerType,
-          lr:        this.refs.lr.current,
-          bestScore: this.bestScore,
-          episodes:  this.episodes,
-          steps:     this.steps,
-        })
-      }
-    }
-
-    if (this.steps % 10 === 0) this.notify()
+    this.notify()
 
     this.rafId = requestAnimationFrame(this._loop)
   }

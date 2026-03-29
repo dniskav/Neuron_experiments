@@ -7,6 +7,8 @@
 
 import { useMemo } from 'react'
 import { Box, Button, Flex, Heading, NativeSelect, SimpleGrid, Text } from '@chakra-ui/react'
+import { SpeedSelector, TRAIN_SPEED_OPTIONS } from '../../components/shared/SpeedSelector'
+import { EpsilonBadge } from '../../components/shared/EpsilonBadge'
 import { StatItem, NetworkDiagram } from '../../components/lib'
 import type { ActivationType } from '../../components/lib'
 import { SnakeCanvas } from './SnakeCanvas'
@@ -55,7 +57,6 @@ export function SnakeArquitecto() {
     [s.hiddenLayers]
   )
 
-  const epsStr = `${(s.stats.epsilon * 100).toFixed(0)} %`
   const currentKey =
     s.hiddenLayers.map((l) => `${l.neurons}${l.activation[0]}`).join('-') || 'empty'
 
@@ -105,17 +106,14 @@ export function SnakeArquitecto() {
 
           {/* Métricas de juego */}
           {!s.demo ? (
-            <SimpleGrid columns={4} gap={2} w="100%">
-              <StatItem variant="compact" label="Episodios" value={s.stats.episodes} />
-              <StatItem variant="compact" label="Mejor" value={s.stats.bestScore} />
-              <StatItem variant="compact" label="Pasos" value={s.stats.steps} />
-              <StatItem
-                variant="compact"
-                label="Explorar"
-                value={epsStr}
-                highlight={s.stats.epsilon < 0.15}
-              />
-            </SimpleGrid>
+            <>
+              <SimpleGrid columns={3} gap={2} w="100%">
+                <StatItem variant="compact" label="Episodios" value={s.stats.episodes} />
+                <StatItem variant="compact" label="Mejor" value={s.stats.bestScore} />
+                <StatItem variant="compact" label="Pasos" value={s.stats.steps} />
+              </SimpleGrid>
+              <EpsilonBadge epsilon={s.stats.epsilon} />
+            </>
           ) : (
             <SimpleGrid columns={3} gap={2} w="100%">
               <StatItem
@@ -132,6 +130,16 @@ export function SnakeArquitecto() {
               />
               <StatItem variant="compact" label="Récord total" value={s.stats.bestScore} />
             </SimpleGrid>
+          )}
+
+          {/* Velocidad de entrenamiento */}
+          {s.running && !s.demo && (
+            <SpeedSelector
+              options={TRAIN_SPEED_OPTIONS}
+              value={s.trainSpeed}
+              onChange={s.setTrainSpeed}
+              colorPalette="green"
+            />
           )}
 
           {/* Indicador de guardado */}

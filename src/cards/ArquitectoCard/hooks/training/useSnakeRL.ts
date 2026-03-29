@@ -41,15 +41,16 @@ export function useSnakeRL() {
   const netRef         = useRef<NetworkN>(null as unknown as NetworkN)
 
   // ── Refs de control (escritos desde la UI, leídos por la sesión) ──────────
-  const lrRef        = useRef(0.001)
-  const demoSpeedRef = useRef(120)
+  const lrRef          = useRef(0.001)
+  const demoSpeedRef   = useRef(120)
+  const trainSpeedRef  = useRef(1)
 
   // ── Sesión (creada una sola vez) ──────────────────────────────────────────
   const sessionRef = useRef<SnakeSession | null>(null)
   if (!sessionRef.current) {
     sessionRef.current = new SnakeSession(DEFAULT_LAYERS, 'adam', {
       state: stateRef, activations: activationsRef, net: netRef,
-      lr: lrRef, demoSpeed: demoSpeedRef,
+      lr: lrRef, demoSpeed: demoSpeedRef, trainSpeed: trainSpeedRef,
     })
   }
 
@@ -57,7 +58,8 @@ export function useSnakeRL() {
   const [hiddenLayers,  setHiddenLayers]  = useState<LayerConfig[]>(DEFAULT_LAYERS)
   const [optimizerType, setOptimizerType] = useState<OptimizerType>('adam')
   const [lr,            setLrState]       = useState(0.001)
-  const [demoSpeed,     setDemoSpeedState] = useState(120)
+  const [demoSpeed,     setDemoSpeedState]  = useState(120)
+  const [trainSpeed,    setTrainSpeedState] = useState(1)
 
   // ── Estado notificado por la sesión ───────────────────────────────────────
   const [sessionState, setSessionState] = useState<SnakeSessionState>(
@@ -91,6 +93,11 @@ export function useSnakeRL() {
   const setDemoSpeed = useCallback((ms: number) => {
     demoSpeedRef.current = ms
     setDemoSpeedState(ms)
+  }, [])
+
+  const setTrainSpeed = useCallback((v: number) => {
+    trainSpeedRef.current = v
+    setTrainSpeedState(v)
   }, [])
 
   const loadEntry = useCallback((entry: LeaderboardEntry) => {
@@ -127,7 +134,8 @@ export function useSnakeRL() {
     resetear:    () => sessionRef.current!.resetear(),
     probar:      () => sessionRef.current!.probar(),
     detenerDemo: () => sessionRef.current!.detenerDemo(),
-    setLr, setDemoSpeed, setOptimizerType,
+    setLr, setDemoSpeed, setTrainSpeed, setOptimizerType,
+    trainSpeed,
     loadEntry,
     addLayer, removeLayer, updateLayer,
   }
