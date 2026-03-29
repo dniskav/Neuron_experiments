@@ -5,6 +5,7 @@ import { DetectorAngryBird } from "../cards/AngryBirdCard";
 import { DetectorCañon }     from "../cards/CañonCard";
 import { DetectorArkanoid }  from "../cards/ArkanoidCard";
 import { DetectorArquitecto } from "../cards/ArquitectoCard";
+import { RobotAgent }        from "../cards/RobotCard";
 
 export function ExperimentosPage() {
   return (
@@ -26,6 +27,21 @@ export function ExperimentosPage() {
           <DetectorAngryBird />
           <DetectorCañon />
           <DetectorArkanoid />
+        </Flex>
+      </Box>
+
+      {/* Robot con sensores progresivos */}
+      <Separator />
+      <Box py={14} px={6} bg="#0f172a">
+        <Box textAlign="center" mb={10}>
+          <Heading size="xl" color="white" mb={2}>🤖 Construye tu robot</Heading>
+          <Text color="gray.400" fontSize="md" maxW="520px" mx="auto">
+            Un agente que cobra vida sensor a sensor. Cada nivel añade una nueva
+            capacidad — de ir recto a esquivar paredes a navegar libremente.
+          </Text>
+        </Box>
+        <Flex justify="center">
+          <RobotAgent />
         </Flex>
       </Box>
 

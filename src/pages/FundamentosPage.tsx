@@ -4,7 +4,7 @@ import { Box, Flex, Heading, Separator, Text } from "@chakra-ui/react";
 import { DetectorNeuron }   from "../cards/NeuronCard";
 import { DetectorColor }    from "../cards/ColorCard";
 import { DetectorCirculo }  from "../cards/CirculoCard";
-import { DetectorArquitecto } from "../cards/ArquitectoCard";
+import { DetectorArquitecto, CurriculumArquitecto } from "../cards/ArquitectoCard";
 import datosMayor   from "../data/datos.json";
 import datosAnciano from "../data/datos_anciano.json";
 
@@ -54,14 +54,30 @@ export function FundamentosPage() {
         </Flex>
       </Box>
 
-      {/* Arquitecto — solo problemas de clasificación */}
+      {/* Modo currículum guiado */}
       <Separator />
       <Box py={14} px={6} bg="#0f172a">
         <Box textAlign="center" mb={10}>
-          <Heading size="xl" color="white" mb={2}>🧪 Arquitecto — Clasificación 2D</Heading>
-          <Text color="gray.400" fontSize="md" maxW="520px" mx="auto">
-            Construye tu propia arquitectura y ve la frontera de decisión en tiempo real.
-            Experimenta con capas, activaciones y optimizadores.
+          <Heading size="xl" color="white" mb={2}>🎓 Aprende construyendo</Heading>
+          <Text color="gray.400" fontSize="md" maxW="540px" mx="auto">
+            4 niveles progresivos. En cada uno tienes una arquitectura restringida
+            y una meta de precisión que alcanzar. Cuando la logras, se desbloquea
+            el siguiente bloque de construcción.
+          </Text>
+        </Box>
+        <Flex justify="center">
+          <CurriculumArquitecto />
+        </Flex>
+      </Box>
+
+      {/* Arquitecto libre — solo problemas de clasificación */}
+      <Separator />
+      <Box py={14} px={6} bg="gray.50">
+        <Box textAlign="center" mb={10}>
+          <Heading size="xl" color="gray.800" mb={2}>🧪 Arquitecto libre</Heading>
+          <Text color="gray.500" fontSize="md" maxW="520px" mx="auto">
+            Sin restricciones. Construye cualquier arquitectura y ve la frontera de
+            decisión en tiempo real. Experimenta con capas, activaciones y optimizadores.
           </Text>
         </Box>
         <Flex justify="center">

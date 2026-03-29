@@ -14,10 +14,10 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { NetworkN, SGD, Momentum, Adam, relu, leakyRelu, sigmoid, tanh, linear, elu } from "@dniskav/neuron";
-import type { ActivationType } from "../../components/lib";
-import type { SnakeState } from "./SnakeEnv";
-import { initSnake, stepSnake, getInputs, greedyAction, N_IN, N_OUT } from "./SnakeEnv";
-import { getLeaderboard, upsertLeaderboard, type LeaderboardEntry } from "./leaderboard";
+import type { ActivationType } from "../../../../components/lib";
+import type { SnakeState } from "../../SnakeEnv";
+import { initSnake, stepSnake, getInputs, greedyAction, N_IN, N_OUT } from "../../SnakeEnv";
+import { getLeaderboard, upsertLeaderboard, type LeaderboardEntry } from "../../leaderboard";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 

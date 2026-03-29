@@ -6,7 +6,7 @@
 //
 
 import { useMemo } from "react";
-import type { LayerConfig, OptimizerType } from "./useSnakeRL";
+import type { LayerConfig, OptimizerType } from "../training/useSnakeRL";
 import type { TutorMessage, TutorType } from "./useTutor";
 
 export type { TutorMessage, TutorType };

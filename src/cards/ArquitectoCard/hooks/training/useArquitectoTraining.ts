@@ -6,8 +6,8 @@
 
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { NetworkN, SGD, Momentum, Adam, relu, leakyRelu, sigmoid, tanh, linear, elu } from "@dniskav/neuron";
-import type { ActivationType } from "../../components/lib";
-import type { Problem } from "./problems";
+import type { ActivationType } from "../../../../components/lib";
+import type { Problem } from "../../problems";
 
 // ── Tipos públicos ────────────────────────────────────────────────────────────
 

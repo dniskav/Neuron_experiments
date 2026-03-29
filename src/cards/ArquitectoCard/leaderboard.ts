@@ -4,7 +4,7 @@
 // Una entrada por arquitectura única — si mejora el score se actualiza.
 //
 
-import type { LayerConfig, OptimizerType } from "./useSnakeRL";
+import type { LayerConfig, OptimizerType } from "./hooks/training/useSnakeRL";
 
 const KEY = "snake-dqn-leaderboard";
 

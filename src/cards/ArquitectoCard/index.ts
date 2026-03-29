@@ -1,1 +1,2 @@
-export { DetectorArquitecto } from "./DetectorArquitecto";
+export { DetectorArquitecto }  from "./DetectorArquitecto";
+export { CurriculumArquitecto } from "./CurriculumArquitecto";

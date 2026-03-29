@@ -6,7 +6,7 @@
 
 import { useMemo } from "react";
 import type { TutorMessage } from "./useTutor";
-import type { DenseConfig, MazeStats } from "./useMazeRL";
+import type { DenseConfig, MazeStats } from "../training/useMazeRL";
 
 interface TutorMazeInput {
   lstmSize:    number;

@@ -7,8 +7,8 @@
 //
 
 import { useMemo } from "react";
-import type { LayerConfig, OptimizerType } from "./useArquitectoTraining";
-import type { Problem } from "./problems";
+import type { LayerConfig, OptimizerType } from "../training/useArquitectoTraining";
+import type { Problem } from "../../problems";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 

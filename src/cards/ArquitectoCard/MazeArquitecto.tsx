@@ -18,10 +18,10 @@ import {
 import { StatItem, NetworkDiagram, DetailsBox } from "../../components/lib";
 import type { ActivationType } from "../../components/lib";
 import { MazeCanvas2D } from "./MazeCanvas2D";
-import { TutorPanel } from "./TutorPanel";
-import { useMazeRL, N_IN, N_OUT, DENSE_ACT_OPTIONS } from "./useMazeRL";
-import type { DenseConfig, DenseActKey } from "./useMazeRL";
-import { useTutorMaze } from "./useTutorMaze";
+import { TutorPanel } from "../../components/shared/TutorPanel";
+import { useMazeRL, N_IN, N_OUT, DENSE_ACT_OPTIONS } from "./hooks/training/useMazeRL";
+import type { DenseConfig, DenseActKey } from "./hooks/training/useMazeRL";
+import { useTutorMaze } from "./hooks/tutor/useTutorMaze";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -347,7 +347,7 @@ export function MazeArquitecto() {
           </Flex>
 
           {/* Tutor contextual */}
-          {tutorMsg && <TutorPanel message={tutorMsg} />}
+          {tutorMsg && <TutorPanel msg={tutorMsg} />}
 
           {/* Explicación LSTM + BPTT */}
           <DetailsBox summary="¿Por qué LSTM? Memoria a través del tiempo">

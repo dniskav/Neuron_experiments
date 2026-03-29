@@ -11,9 +11,9 @@ import {
   START, GOAL_R, WAYPOINTS, WAYPOINT_R, PROX_UMBRAL,
   moverAgente, distObjetivo, entradas,
   type Agente,
-} from "../../data/laberinto";
-import { accionGreedy, accionReflejoChoque, actualizarLambda, computeLSTMActs } from "../LaberintoCard/rl";
-import type { StepBuf } from "../LaberintoCard/types";
+} from "../../../../data/laberinto";
+import { accionGreedy, accionReflejoChoque, actualizarLambda, computeLSTMActs } from "../../../LaberintoCard/rl";
+import type { StepBuf } from "../../../LaberintoCard/types";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
