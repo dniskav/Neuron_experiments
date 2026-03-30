@@ -19,7 +19,7 @@ export type { LeaderboardEntry }
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-export type ActivationKey = 'relu' | 'leakyRelu' | 'sigmoid' | 'tanh' | 'linear' | 'elu'
+export type ActivationKey = 'relu' | 'leakyRelu' | 'sigmoid' | 'tanh' | 'linear' | 'elu' | 'lstm'
 export type OptimizerType = 'sgd' | 'momentum' | 'adam'
 
 export interface LayerConfig {

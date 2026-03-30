@@ -136,11 +136,18 @@ export class RobotSession {
 
   private readonly listeners = new Set<(state: AgentStats) => void>()
 
+  private level:        Level
+  private hiddenLayers: HiddenLayer[]
+  private readonly refs: VisualRefs
+
   constructor(
-    private level:        Level,
-    private hiddenLayers: HiddenLayer[],
-    private readonly refs: VisualRefs,
+    level:        Level,
+    hiddenLayers: HiddenLayer[],
+    refs: VisualRefs,
   ) {
+    this.level        = level
+    this.hiddenLayers = hiddenLayers
+    this.refs         = refs
     this.net = buildNet(hiddenLayers, inputSizeForLevel(level), nActionsForLevel(level))
     this.refs.agent.current = resetAgent()
   }
