@@ -4,25 +4,10 @@
     <meta charset="UTF-8" />
     <title>Neuron Lab</title>
     <script>
-      // GitHub Pages SPA redirect trick.
-      // Encodes the full path as a query param and redirects to the root.
-      // index.html will decode it and push the correct route.
-      var segmentCount = 1 // number of path segments in the repo base (e.g. /Neuron_experiments/ = 1)
-      var l = window.location
-      l.replace(
-        l.protocol +
-          '//' +
-          l.hostname +
-          (l.port ? ':' + l.port : '') +
-          l.pathname
-            .split('/')
-            .slice(0, 1 + segmentCount)
-            .join('/') +
-          '/?p=/' +
-          l.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~') +
-          (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-          l.hash
-      )
+      // Guarda la URL completa y redirige a la raíz.
+      // index.html la restaura con history.replaceState antes de que React monte.
+      sessionStorage.setItem('spa_redirect', location.href)
+      location.replace('/Neuron_experiments/')
     </script>
   </head>
   <body></body>
