@@ -5,7 +5,7 @@
 //
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { NetworkLSTM, Adam, relu, leakyRelu, tanh, sigmoid, linear } from "@dniskav/neuron";
+import { NetworkLSTM, NetworkTransformerRL, Adam, relu, leakyRelu, tanh, sigmoid, linear } from "@dniskav/neuron";
 import type { Activation } from "@dniskav/neuron";
 import {
   START, GOAL_R, WAYPOINTS, WAYPOINT_R, PROX_UMBRAL,
@@ -13,6 +13,7 @@ import {
   type Agente,
 } from "../../../../data/laberinto";
 import { accionGreedy, accionReflejoChoque, actualizarLambda, computeLSTMActs } from "../../../LaberintoCard/rl";
+import { ventanaVacia, avanzarVentana } from "../../../LaberintoTransformerCard/rl";
 import type { StepBuf } from "../../../LaberintoCard/types";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -29,9 +30,17 @@ const EPS_DECAY           = 0.986;
 const SAVE_EVERY          = 10;
 const LR_DEFAULT          = 0.02;
 
+const TRANSFORMER_SEQ_LEN = 8;
+const TRANSFORMER_D_MODEL = 32;
+const TRANSFORMER_N_HEADS = 2;
+const TRANSFORMER_D_FF    = 64;
+const TRANSFORMER_BLOCKS  = 2;
+
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 export interface DenseConfig { neurons: number; }
+
+export type NetworkType = "lstm" | "transformer";
 
 export interface MazeStats {
   episodios:   number;
@@ -46,31 +55,51 @@ export interface MazeStats {
 
 // ── Persistencia ──────────────────────────────────────────────────────────────
 
-function archKey(lstmSize: number, dense: DenseConfig[], actKey: DenseActKey): string {
+function archKey(netType: NetworkType, lstmSize: number, dense: DenseConfig[], actKey: DenseActKey): string {
+  if (netType === "transformer") {
+    return `maze-transformer-${TRANSFORMER_D_MODEL}-${TRANSFORMER_N_HEADS}-${TRANSFORMER_BLOCKS}`;
+  }
   return `maze-lstm${lstmSize}-${dense.map(l => l.neurons).join("-") || "nodense"}-${actKey}`;
 }
 
-type SavedMaze = {
+type SavedMazeLSTM = {
+  type:      "lstm";
   weights:   ReturnType<NetworkLSTM["getWeights"]>;
   episodios: number;
   epsilon:   number;
   exitos:    number;
 };
 
-function saveToStorage(net: NetworkLSTM, lstmSize: number, dense: DenseConfig[], actKey: DenseActKey, episodios: number, epsilon: number, exitos: number) {
+type SavedMazeTransformer = {
+  type:      "transformer";
+  weights:   number[];
+  episodios: number;
+  epsilon:   number;
+  exitos:    number;
+};
+
+type SavedMaze = SavedMazeLSTM | SavedMazeTransformer;
+
+function saveToStorage(net: NetworkLSTM | NetworkTransformerRL, netType: NetworkType, lstmSize: number, dense: DenseConfig[], actKey: DenseActKey, episodios: number, epsilon: number, exitos: number) {
   try {
-    const data: SavedMaze = { weights: net.getWeights(), episodios, epsilon, exitos };
-    localStorage.setItem(archKey(lstmSize, dense, actKey), JSON.stringify(data));
+    const data: SavedMaze = netType === "transformer"
+      ? { type: "transformer", weights: (net as NetworkTransformerRL).getWeightsFlat(), episodios, epsilon, exitos }
+      : { type: "lstm", weights: (net as NetworkLSTM).getWeights(), episodios, epsilon, exitos };
+    localStorage.setItem(archKey(netType, lstmSize, dense, actKey), JSON.stringify(data));
   } catch { /* quota */ }
 }
 
-function loadFromStorage(net: NetworkLSTM, lstmSize: number, dense: DenseConfig[], actKey: DenseActKey): { episodios: number; epsilon: number; exitos: number } | null {
+function loadFromStorage(net: NetworkLSTM | NetworkTransformerRL, netType: NetworkType, lstmSize: number, dense: DenseConfig[], actKey: DenseActKey): { episodios: number; epsilon: number; exitos: number } | null {
   try {
-    const raw = localStorage.getItem(archKey(lstmSize, dense, actKey));
+    const raw = localStorage.getItem(archKey(netType, lstmSize, dense, actKey));
     if (!raw) return null;
     const data: SavedMaze = JSON.parse(raw);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    net.setWeights(data.weights as any);
+    if (netType === "transformer" && data.type === "transformer") {
+      (net as NetworkTransformerRL).setWeightsFlat((data as SavedMazeTransformer).weights);
+    } else if (netType === "lstm" && data.type === "lstm") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (net as NetworkLSTM).setWeights((data as SavedMazeLSTM).weights as any);
+    }
     return { episodios: data.episodios, epsilon: data.epsilon, exitos: data.exitos };
   } catch { return null; }
 }
@@ -92,10 +121,21 @@ function buildNet(lstmSize: number, dense: DenseConfig[], actKey: DenseActKey): 
   });
 }
 
+function buildTransformerNet(): NetworkTransformerRL {
+  return new NetworkTransformerRL(TRANSFORMER_SEQ_LEN, N_IN, {
+    d_model:  TRANSFORMER_D_MODEL,
+    nHeads:   TRANSFORMER_N_HEADS,
+    d_ff:     TRANSFORMER_D_FF,
+    nBlocks:  TRANSFORMER_BLOCKS,
+    nActions: N_OUT,
+  });
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useMazeRL() {
   // Arquitectura configurable
+  const [networkType, setNetworkType] = useState<NetworkType>("lstm");
   const [lstmSize,    setLstmSize]    = useState(16);
   const [denseLayers, setDenseLayers] = useState<DenseConfig[]>([{ neurons: 16 }]);
   const [denseActKey, setDenseActKey] = useState<DenseActKey>("relu");
@@ -103,15 +143,20 @@ export function useMazeRL() {
   const lrRef = useRef(LR_DEFAULT);
 
   // Refs para que los loops lean siempre la arquitectura actual
+  const networkTypeRef = useRef(networkType);
   const lstmSizeRef    = useRef(lstmSize);
   const denseLayersRef = useRef(denseLayers);
   const denseActKeyRef = useRef(denseActKey);
+  useEffect(() => { networkTypeRef.current = networkType; }, [networkType]);
   useEffect(() => { lstmSizeRef.current    = lstmSize;    }, [lstmSize]);
   useEffect(() => { denseLayersRef.current = denseLayers; }, [denseLayers]);
   useEffect(() => { denseActKeyRef.current = denseActKey; }, [denseActKey]);
 
   // Red
-  const netRef = useRef<NetworkLSTM>(buildNet(lstmSize, denseLayers, denseActKey));
+  const netRef = useRef<NetworkLSTM | NetworkTransformerRL>(buildNet(lstmSize, denseLayers, denseActKey));
+
+  // Ventana deslizante para TransformerRL
+  const ventanaRef = useRef<number[][]>(ventanaVacia());
 
   // Estado del agente
   const agenteRef = useRef<Agente>({ ...START });
@@ -130,7 +175,8 @@ export function useMazeRL() {
   // Demo
   const demoExitosRef = useRef(0);
   const demoTotalRef  = useRef(0);
-  const bestWeightsRef = useRef<ReturnType<NetworkLSTM["getWeights"]> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bestWeightsRef = useRef<any | null>(null);
   const bestDemoRateRef = useRef(-1);
 
   // Control
@@ -160,7 +206,9 @@ export function useMazeRL() {
     episodeBufRef.current = [];
     stepRef.current      = 0;
     chocoRef.current     = false;
-    netRef.current.resetState();
+    ventanaRef.current   = ventanaVacia();
+    const net = netRef.current;
+    if (net instanceof NetworkLSTM) net.resetState();
   }, []);
 
   // ── Rebuild en cambio de arquitectura ─────────────────────────────────────
@@ -176,10 +224,12 @@ export function useMazeRL() {
     setDemo(false);
     demoRef.current = false;
 
-    const net = buildNet(lstmSize, denseLayers, denseActKey);
+    const net: NetworkLSTM | NetworkTransformerRL = networkType === "transformer"
+      ? buildTransformerNet()
+      : buildNet(lstmSize, denseLayers, denseActKey);
     netRef.current = net;
 
-    const saved = loadFromStorage(net, lstmSize, denseLayers, denseActKey);
+    const saved = loadFromStorage(net, networkType, lstmSize, denseLayers, denseActKey);
     if (saved) {
       epsilonRef.current   = saved.epsilon;
       episodiosRef.current = saved.episodios;
@@ -206,7 +256,7 @@ export function useMazeRL() {
       setRunning(true);
       rafRef.current = requestAnimationFrame(loopRef.current);
     }
-  }, [lstmSize, denseLayers, denseActKey, resetEpisodio]);
+  }, [networkType, lstmSize, denseLayers, denseActKey, resetEpisodio]);
 
   // ── Loop principal ─────────────────────────────────────────────────────────
 
@@ -215,12 +265,20 @@ export function useMazeRL() {
 
     const esDemo     = demoRef.current;
     const pasosFrame = esDemo ? 1 : PASOS_FRAME_TRAIN;
+    const isTransformer = networkTypeRef.current === "transformer";
 
     for (let f = 0; f < pasosFrame; f++) {
       const ag  = agenteRef.current;
       const inp = entradas(ag, visitedRef.current);
-      const q   = netRef.current.predict(inp);
-      activationsRef.current = computeLSTMActs(netRef.current, inp);
+
+      let q: number[];
+      if (isTransformer) {
+        ventanaRef.current = avanzarVentana(ventanaRef.current, inp);
+        q = (netRef.current as NetworkTransformerRL).predict(ventanaRef.current);
+      } else {
+        q = (netRef.current as NetworkLSTM).predict(inp);
+      }
+      activationsRef.current = isTransformer ? [] : computeLSTMActs(netRef.current as NetworkLSTM, inp);
 
       // Anti-bucle en demo: si lleva 25 pasos sin avanzar un TILE, explorar
       let eps = esDemo ? 0.04 : epsilonRef.current;
@@ -261,11 +319,44 @@ export function useMazeRL() {
       const done = llego || stepRef.current >= MAX_PASOS;
       chocoRef.current = choco;
 
-      if (!esDemo) episodeBufRef.current.push({ inp, q, a: action, r: reward, done });
+      if (!esDemo) {
+        if (isTransformer) {
+          (episodeBufRef.current as unknown as Array<{ seq: number[][]; q: number[]; a: number; r: number; done: boolean }>)
+            .push({ seq: ventanaRef.current.map(s => [...s]), q, a: action, r: reward, done });
+        } else {
+          episodeBufRef.current.push({ inp, q, a: action, r: reward, done });
+        }
+      }
 
       if (done) {
         if (!esDemo) {
-          actualizarLambda(netRef.current, episodeBufRef.current, lrRef.current);
+          if (isTransformer) {
+            // TD(λ) + per-step train for transformer
+            const buf = episodeBufRef.current as unknown as Array<{ seq: number[][]; q: number[]; a: number; r: number; done: boolean }>;
+            const n = buf.length;
+            if (n > 0) {
+              const GAMMA = 0.95, LAMBDA = 0.85, R_SCALE = 14;
+              const vNext = buf.map((step, t) => {
+                if (step.done) return 0.5;
+                if (t + 1 < n) return Math.max(...buf[t + 1].q);
+                return 0.5;
+              });
+              const G = new Array<number>(n);
+              G[n - 1] = Math.max(0, Math.min(1, buf[n - 1].r / R_SCALE + GAMMA * vNext[n - 1]));
+              for (let t = n - 2; t >= 0; t--) {
+                G[t] = Math.max(0, Math.min(1,
+                  buf[t].r / R_SCALE + GAMMA * ((1 - LAMBDA) * vNext[t] + LAMBDA * G[t + 1])
+                ));
+              }
+              for (let t = 0; t < n; t++) {
+                const targets = [...buf[t].q];
+                targets[buf[t].a] = G[t];
+                (netRef.current as NetworkTransformerRL).train(buf[t].seq, targets, lrRef.current);
+              }
+            }
+          } else {
+            actualizarLambda(netRef.current as NetworkLSTM, episodeBufRef.current, lrRef.current);
+          }
           if (llego) exitosRef.current++;
           episodiosRef.current++;
           epsilonRef.current = Math.max(EPS_FIN, epsilonRef.current * EPS_DECAY);
@@ -273,7 +364,7 @@ export function useMazeRL() {
           // Guardar cada SAVE_EVERY episodios
           if (episodiosRef.current % SAVE_EVERY === 0) {
             saveToStorage(
-              netRef.current, lstmSizeRef.current, denseLayersRef.current, denseActKeyRef.current,
+              netRef.current, networkTypeRef.current, lstmSizeRef.current, denseLayersRef.current, denseActKeyRef.current,
               episodiosRef.current, epsilonRef.current, exitosRef.current,
             );
             setHasSave(true);
@@ -297,7 +388,8 @@ export function useMazeRL() {
           demoRef.current    = false;
           setRunning(false);
           setDemo(false);
-          netRef.current.resetState();
+          const net = netRef.current;
+          if (net instanceof NetworkLSTM) net.resetState();
         }
 
         setStats({
@@ -362,9 +454,11 @@ export function useMazeRL() {
     setRunning(false);
     setDemo(false);
     demoRef.current = false;
-    localStorage.removeItem(archKey(lstmSize, denseLayers, denseActKey));
+    localStorage.removeItem(archKey(networkType, lstmSize, denseLayers, denseActKey));
     setHasSave(false);
-    netRef.current         = buildNet(lstmSize, denseLayers, denseActKey);
+    netRef.current = networkType === "transformer"
+      ? buildTransformerNet()
+      : buildNet(lstmSize, denseLayers, denseActKey);
     epsilonRef.current     = EPS_INICIO;
     episodiosRef.current   = 0;
     exitosRef.current      = 0;
@@ -375,7 +469,7 @@ export function useMazeRL() {
     resetEpisodio();
     setStats({ episodios: 0, pasos: 0, epsilon: EPS_INICIO, tasa: 0, exito: false, waypoints: 0, demoExitos: 0, demoTotal: 0 });
     setRedrawVersion(v => v + 1);
-  }, [lstmSize, denseLayers, denseActKey, resetEpisodio]);
+  }, [networkType, lstmSize, denseLayers, denseActKey, resetEpisodio]);
 
   const setLr = useCallback((v: number) => { lrRef.current = v; setLrState(v); }, []);
 
@@ -399,6 +493,8 @@ export function useMazeRL() {
     showSensors, setShowSensors,
     // Red
     netRef, activationsRef,
+    // Tipo de red
+    networkType, setNetworkType,
     // Arquitectura
     lstmSize, denseLayers, denseActKey, setDenseActKey, lr,
     // UI

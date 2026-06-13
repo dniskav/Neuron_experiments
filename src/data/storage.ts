@@ -71,3 +71,22 @@ export function loadNetworkLSTM(key: string): NetworkLSTMState | null {
   if (!raw) return null;
   try { return JSON.parse(raw) as NetworkLSTMState; } catch { return null; }
 }
+
+// ─── NetworkTransformerRL ─────────────────────────────────────────────────────
+
+export interface NetworkTransformerRLState {
+  weights:  object;   // ReturnType<NetworkTransformerRL['getWeights']>
+  episodio: number;
+  epsilon:  number;
+  exitos:   number;
+}
+
+export function saveNetworkTransformerRL(key: string, data: NetworkTransformerRLState): void {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+export function loadNetworkTransformerRL(key: string): NetworkTransformerRLState | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try { return JSON.parse(raw) as NetworkTransformerRLState; } catch { return null; }
+}

@@ -1,0 +1,1 @@
+export { TextGeneratorCard } from './TextGeneratorCard'

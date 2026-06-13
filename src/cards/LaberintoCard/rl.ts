@@ -16,7 +16,7 @@ export const EPSILON_INICIO = 0.92;
 export const EPSILON_FIN    = 0.06;
 export const EPSILON_DECAY  = 0.986;
 export const R_SCALE        = 14;
-export const MAX_PASOS      = 600;
+export const MAX_PASOS      = 180;  // camino directo ~130 pasos · callejón+retroceso ~260 → siempre falla
 export const PASOS_FRAME    = 10;
 export const MAX_TRAIL      = 100;
 

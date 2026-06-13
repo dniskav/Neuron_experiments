@@ -23,29 +23,27 @@ export const CH   = ROWS * TILE;  // 420
 //   1 = pasillo,  0 = muro
 //   S en (col=0, row=0),  F en (col=8, row=6)
 //
-//   Ruta correcta:  S→→→(3,0)↓↓↓(3,3)→→→(6,3)↓(6,4)↓(6,5)↓(6,6)→→F
+//   Ruta correcta:  S→→→(3,0)↓↓(3,2)→→(5,2)↓(5,3)→→(7,3)↓↓↓(7,6)→F
 //
-//   Bifurcaciones (el agente debe elegir):
-//     (3,0): seguir →→ (callejón) o girar ↓ (correcto)
-//     (3,3): girar ←←← (callejón) o seguir → (correcto)
-//     (6,3): girar ↑↑  (callejón) o girar ↓ (correcto)
-//     (6,4): girar →→→ (callejón) o seguir ↓ (correcto)
-//     (6,6): girar ←←← (callejón) o girar → (correcto)
+//   Bifurcación CLAVE en (3,2) — el agente llega apuntando Sur:
+//     girar ← Este  (correcto) → (4,2)→(5,2)→(5,3)→...→F   (~150 pasos)
+//     girar → Oeste (trampa)   → callejón sin salida, retroceso, supera MAX_PASOS
 //
-//   Callejones sin salida:
-//     (4,0)(5,0)          — continuar recto desde (3,0)
-//     (0,3)(1,3)(2,3)     — girar izq desde (3,3)
-//     (6,1)(6,2)          — subir desde (6,3)
-//     (7,4)(8,4)          — girar der desde (6,4)
-//     (3,6)(4,6)(5,6)     — girar izq desde (6,6)
+//   CALLEJÓN-TRAMPA (cols 1-4, filas 2-4) — sin salida al pasillo Este:
+//     (3,2)→W→(2,2)→(1,2)→(1,3)→(1,4)→(2,4)→(3,4)→(4,4) → MUERTO (5,4)=muro
+//     El agente retrocede, gasta ~300 pasos y no llega a la meta.
+//
+//   Segunda bifurcación en (5,3):
+//     seguir → Este (correcto) → (6,3)→(7,3)→...→F
+//     girar ← Oeste (re-entra al callejón por arriba, mismo resultado)
 export const MAZE: number[][] = [
-  [1, 1, 1, 1, 1, 1, 0, 0, 0],   // row 0: S→→→→→ + callejón (4,0)(5,0)
-  [0, 0, 0, 1, 0, 0, 1, 0, 0],   // row 1: col3↓ + col6↑ (callejón 3)
-  [0, 0, 0, 1, 0, 0, 1, 0, 0],   // row 2: col3↓ + col6↑ (callejón 3)
-  [1, 1, 1, 1, 1, 1, 1, 0, 0],   // row 3: callejón←←← + ruta →→→
-  [0, 0, 0, 0, 0, 0, 1, 1, 1],   // row 4: col6↓ + callejón (7,4)(8,4)
-  [0, 0, 0, 0, 0, 0, 1, 0, 0],   // row 5: col6↓
-  [0, 0, 0, 1, 1, 1, 1, 1, 1],   // row 6: callejón←←← + →→F
+  [1, 1, 1, 1, 0, 0, 0, 0, 0],   // row 0: S→→→, forzado ↓ en (3,0)
+  [0, 0, 0, 1, 0, 0, 0, 0, 0],   // row 1: col3↓
+  [0, 1, 1, 1, 1, 1, 0, 0, 0],   // row 2: bucle+correcto (cols 1-5)
+  [0, 1, 0, 0, 0, 1, 1, 1, 0],   // row 3: col1 bucle · cols 5-7 correcto
+  [0, 1, 1, 1, 1, 0, 0, 1, 0],   // row 4: callejón inferior (cols 1-4) · col7↓  ← (5,4)=muro corta la salida del bucle
+  [0, 0, 0, 0, 0, 0, 0, 1, 0],   // row 5: col7↓
+  [0, 0, 0, 0, 0, 0, 0, 1, 1],   // row 6: →F en (8,6)
 ];
 
 export const START: { x: number; y: number; h: number } = {
@@ -155,20 +153,16 @@ export function distObjetivo(x: number, y: number): number {
 }
 
 // ─── Waypoints a lo largo del camino óptimo ────────────────────────────────────
-// IMPORTANTE: los waypoints están DENTRO de los corredores correctos,
-// NO en las bifurcaciones. Así el agente solo los cobra si tomó la
-// dirección correcta — no si entró al callejón.
-//
-//   WP1 (col3, row2) — bajando por el primer corredor sur
-//   WP2 (col4, row3) — avanzando por el corredor este
-//   WP3 (col6, row4) — bajando tras la bifurcación en (6,3)
-//   WP4 (col6, row5) — bajando tras la bifurcación en (6,4)
-//   WP5 (col7, row6) — avanzando por el corredor final este
+// WP1 (col4, row2) — primer paso Este tras la bifurcación correcta
+// WP2 (col6, row3) — en el corredor Este, fuera del bucle
+// WP3 (col7, row3) — avanzando Este hacia el eje de bajada
+// WP4 (col7, row4) — bajando por col7
+// WP5 (col7, row6) — tramo final antes de la meta
 export const WAYPOINTS: Array<{ x: number; y: number }> = [
-  { x: 3 * TILE + TILE / 2, y: 2 * TILE + TILE / 2 },  // WP1 (col3, row2)
-  { x: 4 * TILE + TILE / 2, y: 3 * TILE + TILE / 2 },  // WP2 (col4, row3)
-  { x: 6 * TILE + TILE / 2, y: 4 * TILE + TILE / 2 },  // WP3 (col6, row4)
-  { x: 6 * TILE + TILE / 2, y: 5 * TILE + TILE / 2 },  // WP4 (col6, row5)
+  { x: 4 * TILE + TILE / 2, y: 2 * TILE + TILE / 2 },  // WP1 (col4, row2)
+  { x: 6 * TILE + TILE / 2, y: 3 * TILE + TILE / 2 },  // WP2 (col6, row3)
+  { x: 7 * TILE + TILE / 2, y: 3 * TILE + TILE / 2 },  // WP3 (col7, row3)
+  { x: 7 * TILE + TILE / 2, y: 4 * TILE + TILE / 2 },  // WP4 (col7, row4)
   { x: 7 * TILE + TILE / 2, y: 6 * TILE + TILE / 2 },  // WP5 (col7, row6)
 ];
 export const WAYPOINT_R     = 28;   // radio de captura en px

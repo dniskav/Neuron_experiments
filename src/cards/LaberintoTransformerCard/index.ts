@@ -1,0 +1,1 @@
+export { DetectorLaberintoTransformer } from "./DetectorLaberintoTransformer";

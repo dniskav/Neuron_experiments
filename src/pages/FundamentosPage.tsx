@@ -4,6 +4,7 @@ import { Box, Flex, Heading, Separator, Text } from "@chakra-ui/react";
 import { DetectorNeuron }   from "../cards/NeuronCard";
 import { DetectorColor }    from "../cards/ColorCard";
 import { DetectorCirculo }  from "../cards/CirculoCard";
+import { CurveFittingCard } from "../cards/CurveFittingCard";
 import { DetectorArquitecto, CurriculumArquitecto } from "../cards/ArquitectoCard";
 import datosMayor   from "../data/datos.json";
 import datosAnciano from "../data/datos_anciano.json";
@@ -51,6 +52,7 @@ export function FundamentosPage() {
           />
           <DetectorColor />
           <DetectorCirculo />
+          <CurveFittingCard />
         </Flex>
       </Box>
 

@@ -8,6 +8,8 @@ const LINKS = [
   { to: "/clasificacion-2d", label: "Clasificación 2D",      emoji: "🧠" },
   { to: "/rl-feedforward",   label: "RL feedforward",        emoji: "⚡" },
   { to: "/rl-memoria",       label: "RL con memoria",        emoji: "🧠💾" },
+  { to: "/rl-atencion",      label: "RL con atención",       emoji: "🔭" },
+  { to: "/razonamiento",     label: "Razonamiento",          emoji: "🔢" },
 ];
 
 export function Navbar() {
